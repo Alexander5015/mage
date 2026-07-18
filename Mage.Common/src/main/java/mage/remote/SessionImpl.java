@@ -14,6 +14,7 @@ import mage.interfaces.callback.ClientCallback;
 import mage.players.PlayerType;
 import mage.players.net.UserData;
 import mage.util.ThreadUtils;
+import mage.util.XmageThreadFactory;
 import mage.utils.CompressUtil;
 import mage.view.*;
 import org.apache.log4j.Logger;
@@ -24,13 +25,15 @@ import org.jboss.remoting.transport.bisocket.Bisocket;
 import org.jboss.remoting.transport.socket.SocketWrapper;
 import org.jboss.remoting.transporter.TransporterClient;
 
-import javax.swing.*;
 import java.io.*;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,6 +52,13 @@ public class SessionImpl implements Session {
 
     private static final int CONNECT_WAIT_BEFORE_PROCESS_ANY_CALLBACKS_SECS = 3;
 
+    private static final int REMOTE_TASK_THREAD_COUNT = 10;
+    private static final String REMOTE_TASK_THREAD_PREFIX = "XMAGE client remote task";
+    private static final Executor REMOTE_TASK_EXECUTOR = Executors.newFixedThreadPool(
+            REMOTE_TASK_THREAD_COUNT,
+            new XmageThreadFactory(REMOTE_TASK_THREAD_PREFIX)
+    );
+
     public static final String ADMIN_NAME = "Admin"; // if you change here then change in User too
     public static final String KEEP_MY_OLD_SESSION = "keep_my_old_session"; // for disconnects without active session lose (keep tables/games)
 
@@ -57,6 +67,7 @@ public class SessionImpl implements Session {
     }
 
     private final MageClient client;
+    private final Executor remoteTaskExecutor;
 
     private String sessionId = "";
     private String restoreSessionId = "";
@@ -78,7 +89,12 @@ public class SessionImpl implements Session {
     private String lastError = "";
 
     public SessionImpl(MageClient client) {
+        this(client, REMOTE_TASK_EXECUTOR);
+    }
+
+    SessionImpl(MageClient client, Executor remoteTaskExecutor) {
         this.client = client;
+        this.remoteTaskExecutor = remoteTaskExecutor;
     }
 
     @Override
@@ -94,24 +110,21 @@ public class SessionImpl implements Session {
     // RemotingTask - do server side works in background and return result, can be canceled at any time
     public abstract class RemotingTask {
 
-        SwingWorker<Boolean, Object> worker = null;
+        FutureTask<Boolean> worker = null;
         Throwable lastError = null;
 
         abstract public boolean work() throws Throwable;
 
         boolean doWork() throws Throwable {
-            worker = new SwingWorker<Boolean, Object>() {
-                @Override
-                protected Boolean doInBackground() {
-                    try {
-                        return work();
-                    } catch (Throwable t) {
-                        lastError = t;
-                        return false;
-                    }
+            worker = new FutureTask<>(() -> {
+                try {
+                    return work();
+                } catch (Throwable t) {
+                    lastError = t;
+                    return false;
                 }
-            };
-            worker.execute();
+            });
+            remoteTaskExecutor.execute(worker);
 
             boolean res = worker.get();
             if (lastError != null) {
