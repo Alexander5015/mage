@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 BASELINE_REF="$1"
 CANDIDATE_REF="$2"
-BENCHMARK_REGEX="org.mage.benchmark.*"
+BENCHMARK_REGEX='(org\.mage\.benchmark|mage\.server\.game)\..*Benchmark.*'
 
 refuse_disabled_compression() {
     local variable value

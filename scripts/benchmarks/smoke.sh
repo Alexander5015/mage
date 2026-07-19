@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
+BENCHMARK_REGEX='(org\.mage\.benchmark|mage\.server\.game)\..*Benchmark.*'
 
 refuse_disabled_compression() {
     local variable value
@@ -63,7 +64,7 @@ mkdir "$RESULT_DIR"
 echo "Running non-claim smoke benchmark with $JAVA_EXECUTABLE"
 (
     cd "$REPO_ROOT/Mage.Tests"
-    "$JAVA_EXECUTABLE" -jar ../Mage.Benchmarks/target/benchmarks.jar 'org.mage.benchmark.*' \
+    "$JAVA_EXECUTABLE" -jar ../Mage.Benchmarks/target/benchmarks.jar "$BENCHMARK_REGEX" \
         -f 1 -wi 1 -i 1 -w 100ms -r 100ms -t 1 -prof gc \
         -rf json -rff "$RESULT_DIR/results.json"
 ) 2>&1 | tee "$RESULT_DIR/jmh.log"

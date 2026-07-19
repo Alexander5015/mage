@@ -32,19 +32,21 @@ It always runs the complete protected suite. Scoped claim runs are intentionally
 
 ## Deterministic workloads
 
-The tracked policy covers exactly eleven average-time workloads:
+The tracked policy covers exactly thirteen average-time workloads:
 
-1. Full `Game.copy()`.
-2. `GameState.copy()`.
-3. `Battlefield.copy()`.
-4. Compress a real two-player `GameView`.
-5. Decompress a precompressed `GameView`.
-6. Compress a small control-message payload.
-7. Decompress a precompressed control payload.
-8. Java-serialize a `GameView`.
-9. Java-deserialize a pre-serialized `GameView`.
-10. Java-serialize the control payload.
-11. Java-deserialize the control payload.
+1. Prepare a player `GameView` from the stable game.
+2. Prepare a watcher `GameView` from the stable game.
+3. Full `Game.copy()`.
+4. `GameState.copy()`.
+5. `Battlefield.copy()`.
+6. Compress a real two-player `GameView`.
+7. Decompress a precompressed `GameView`.
+8. Compress a small control-message payload.
+9. Decompress a precompressed control payload.
+10. Java-serialize a `GameView`.
+11. Java-deserialize a pre-serialized `GameView`.
+12. Java-serialize the control payload.
+13. Java-deserialize the control payload.
 
 The real payload fixture always contains two players and 18 battlefield permanents, disables initial library shuffling, and embeds a canonical fingerprint covering representative `Game` and `GameView` state. A full comparison serializes one fixture with the baseline code and passes that exact file to every baseline and candidate fork. Every load recomputes and verifies the baseline fingerprint, so serialization changes cannot silently drop state; random UUIDs, wall-clock fields, and map iteration order also cannot change the measured input between pairings. Decompression and deserialization inputs are prepared outside the measured operation. The control payload helps distinguish fixed protocol overhead from costs that scale with the game view.
 
@@ -52,10 +54,10 @@ The real payload fixture always contains two players and 18 battlefield permanen
 
 The full runner executes `AB baseline`, `AB candidate`, `BA candidate`, and `BA baseline`, each with three forks, five one-second warmup iterations, ten one-second measurement iterations, one thread, and the JMH GC profiler. These minimums and the required shared-fixture JVM argument are encoded in `benchmark-policy.json` and checked against actual JMH metadata. Equally weak runs cannot become claim-bearing merely because their settings match; longer confirmatory runs may exceed the minimums. The reversed second pair reduces sensitivity to machine drift and run order.
 
-Every policy-covered benchmark must pass in both pairings:
+The player and watcher preparation workloads are improvement targets. In both pairings they must improve average operation time by at least 5%, using unrounded scores, and the candidate confidence interval must be strictly below the baseline interval. The other eleven workloads are non-regression guards: candidate average operation time may regress by no more than 2%. Full comparisons still execute every workload, regardless of whether its policy rule is an improvement target or a guard.
 
-- average operation time improves by at least 5%, using unrounded scores;
-- the candidate confidence interval is strictly below the baseline interval;
+Every policy-covered benchmark must also pass in both pairings:
+
 - normalized allocation (`gc.alloc.rate.norm`) regresses by no more than 2%; and
 - benchmark keys, modes, units, parameters, environment fields, and policy coverage match exactly.
 

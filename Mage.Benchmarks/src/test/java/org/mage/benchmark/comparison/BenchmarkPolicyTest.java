@@ -22,6 +22,8 @@ public class BenchmarkPolicyTest {
             + "\"requiredJvmArgumentPrefixes\":[\"-Dxmage.benchmark.fixture=\"]},";
 
     private static final String[] BENCHMARKS = {
+            "mage.server.game.GameViewPreparationBenchmark.preparePlayerView",
+            "mage.server.game.GameViewPreparationBenchmark.prepareWatcherView",
             "org.mage.benchmark.GameCopyBenchmark.copyGame",
             "org.mage.benchmark.GameCopyBenchmark.copyGameState",
             "org.mage.benchmark.GameCopyBenchmark.copyBattlefield",
@@ -44,19 +46,24 @@ public class BenchmarkPolicyTest {
                 Paths.get(System.getProperty("basedir"), "benchmark-policy.json"));
         JmhResultFile results = JmhResultFile.read(writeResults(BENCHMARKS));
 
-        assertEquals(11, policy.getRules().size());
+        assertEquals(13, policy.getRules().size());
+        int improvementRules = 0;
         int guardRules = 0;
         for (JmhResultFile.Result result : results.getResults()) {
             BenchmarkPolicy.Rule rule = policy.ruleFor(result);
             assertEquals(5.0, rule.getMinimumImprovementPercent(), 0.0);
-            assertEquals(BenchmarkPolicy.Expectation.GUARD, rule.getExpectation());
             assertEquals(2.0, rule.getMaximumTimeRegressionPercent(), 0.0);
             assertEquals(2.0, rule.getMaximumAllocationRegressionPercent(), 0.0);
             assertEquals("gc.alloc.rate.norm", rule.getAllocationMetric());
-            if (rule.getExpectation() == BenchmarkPolicy.Expectation.GUARD) {
+            if (result.getBenchmark().startsWith("mage.server.game.")) {
+                assertEquals(BenchmarkPolicy.Expectation.IMPROVEMENT, rule.getExpectation());
+                improvementRules++;
+            } else {
+                assertEquals(BenchmarkPolicy.Expectation.GUARD, rule.getExpectation());
                 guardRules++;
             }
         }
+        assertEquals(2, improvementRules);
         assertEquals(11, guardRules);
         assertEquals(0, policy.claimConfigurationProblems(results.getRunConfiguration()).size());
     }

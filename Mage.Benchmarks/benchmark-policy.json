@@ -18,6 +18,26 @@
   },
   "rules": [
     {
+      "benchmark": "mage.server.game.GameViewPreparationBenchmark.preparePlayerView",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {},
+      "expectation": "improvement",
+      "minimumImprovementPercent": 5.0,
+      "maximumTimeRegressionPercent": 2.0,
+      "maximumAllocationRegressionPercent": 2.0
+    },
+    {
+      "benchmark": "mage.server.game.GameViewPreparationBenchmark.prepareWatcherView",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {},
+      "expectation": "improvement",
+      "minimumImprovementPercent": 5.0,
+      "maximumTimeRegressionPercent": 2.0,
+      "maximumAllocationRegressionPercent": 2.0
+    },
+    {
       "benchmark": "org.mage.benchmark.GameCopyBenchmark.copyGame",
       "mode": "avgt",
       "scoreUnit": "us/op",
