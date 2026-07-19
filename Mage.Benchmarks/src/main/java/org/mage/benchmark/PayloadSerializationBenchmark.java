@@ -34,6 +34,17 @@ public class PayloadSerializationBenchmark {
         if (serializedGameView.length == 0 || serializedControlPayload.length == 0) {
             throw new IllegalStateException("Serialized payload is empty");
         }
+        Object restoredGameView = JavaSerialization.deserialize(serializedGameView);
+        if (!(restoredGameView instanceof GameView)
+                || !Arrays.equals(
+                        serializedGameView,
+                        JavaSerialization.serialize(restoredGameView))) {
+            throw new IllegalStateException("Serialized GameView did not round-trip exactly");
+        }
+        Object restoredControlPayload = JavaSerialization.deserialize(serializedControlPayload);
+        if (!controlPayload.equals(restoredControlPayload)) {
+            throw new IllegalStateException("Serialized control payload did not round-trip exactly");
+        }
     }
 
     @Benchmark

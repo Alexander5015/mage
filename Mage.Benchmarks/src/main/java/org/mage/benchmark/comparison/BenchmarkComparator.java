@@ -24,6 +24,20 @@ public final class BenchmarkComparator {
         }
 
         Set<String> errors = new LinkedHashSet<>();
+        if (baseline.getRunConfiguration() == null || candidate.getRunConfiguration() == null) {
+            errors.add("JMH run configuration mismatch: one result file contains no benchmarks");
+        } else {
+            for (String problem : baseline.getRunConfiguration()
+                    .compatibilityProblems(candidate.getRunConfiguration())) {
+                errors.add("JMH run configuration mismatch: " + problem);
+            }
+        }
+        for (String problem : policy.claimConfigurationProblems(baseline.getRunConfiguration())) {
+            errors.add("baseline is not claim-eligible: " + problem);
+        }
+        for (String problem : policy.claimConfigurationProblems(candidate.getRunConfiguration())) {
+            errors.add("candidate is not claim-eligible: " + problem);
+        }
         Map<String, JmhResultFile.Result> baselineByKey = baseline.byKey();
         Map<String, JmhResultFile.Result> candidateByKey = candidate.byKey();
         Set<String> baselineKeys = new TreeSet<>(baselineByKey.keySet());
@@ -119,9 +133,11 @@ public final class BenchmarkComparator {
                     + " != " + candidateAllocationMetric.getScoreUnit());
         } else if (!isNonNegativeFinite(baselineAllocation) || !isNonNegativeFinite(candidateAllocation)) {
             reasons.add("invalid numeric data: allocation scores must be non-negative finite values");
+        } else if (baselineAllocation == 0.0 && candidateAllocation > 0.0) {
+            reasons.add("allocation regression gate failed: candidate allocates when baseline is zero");
         } else {
             allocationRegressionPercent = baselineAllocation == 0.0
-                    ? (candidateAllocation == 0.0 ? 0.0 : Double.POSITIVE_INFINITY)
+                    ? 0.0
                     : ((candidateAllocation - baselineAllocation) / baselineAllocation) * 100.0;
             if (allocationRegressionPercent > rule.getMaximumAllocationRegressionPercent()) {
                 reasons.add("allocation regression gate failed");

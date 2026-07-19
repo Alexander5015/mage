@@ -4,6 +4,7 @@ import mage.remote.traffic.ZippedObject;
 import mage.utils.CompressUtil;
 import mage.view.GameView;
 import org.mage.benchmark.fixture.DeterministicGameFixture;
+import org.mage.benchmark.support.JavaSerialization;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -38,6 +39,17 @@ public class PayloadCompressionBenchmark {
         if (!(compressedGameView instanceof ZippedObject)
                 || !(compressedControlPayload instanceof ZippedObject)) {
             throw new IllegalStateException("Compression is disabled");
+        }
+        Object restoredGameView = CompressUtil.decompress(compressedGameView);
+        if (!(restoredGameView instanceof GameView)
+                || !Arrays.equals(
+                        JavaSerialization.serialize(gameView),
+                        JavaSerialization.serialize(restoredGameView))) {
+            throw new IllegalStateException("Compressed GameView did not round-trip exactly");
+        }
+        Object restoredControlPayload = CompressUtil.decompress(compressedControlPayload);
+        if (!controlPayload.equals(restoredControlPayload)) {
+            throw new IllegalStateException("Compressed control payload did not round-trip exactly");
         }
     }
 

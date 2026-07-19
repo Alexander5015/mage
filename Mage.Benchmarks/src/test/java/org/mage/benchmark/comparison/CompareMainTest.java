@@ -16,6 +16,13 @@ import static org.junit.Assert.assertTrue;
 
 public class CompareMainTest {
 
+    private static final String CLAIM_CONFIGURATION = "\"claimConfiguration\":{"
+            + "\"threads\":1,\"minimumForks\":3,"
+            + "\"minimumWarmupIterations\":5,\"minimumWarmupTime\":\"1 s\","
+            + "\"warmupBatchSize\":1,\"minimumMeasurementIterations\":10,"
+            + "\"minimumMeasurementTime\":\"1 s\",\"measurementBatchSize\":1,"
+            + "\"requiredJvmArgumentPrefixes\":[\"-Dxmage.benchmark.fixture=\"]},";
+
     private static final String BENCHMARK = "org.mage.benchmark.GameCopyBenchmark.copyGame";
 
     @Rule
@@ -83,6 +90,7 @@ public class CompareMainTest {
                 + "\"minimumImprovementPercent\":5.0,"
                 + "\"maximumAllocationRegressionPercent\":2.0,"
                 + "\"allocationMetric\":\"gc.alloc.rate.norm\","
+                + CLAIM_CONFIGURATION
                 + "\"rules\":[{\"benchmark\":\"" + BENCHMARK + "\","
                 + "\"mode\":\"avgt\",\"scoreUnit\":\"us/op\",\"params\":{}}]}");
         Path report = temporaryFolder.getRoot().toPath().resolve("report.json");

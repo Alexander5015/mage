@@ -2,6 +2,19 @@
   "minimumImprovementPercent": 5.0,
   "maximumAllocationRegressionPercent": 2.0,
   "allocationMetric": "gc.alloc.rate.norm",
+  "claimConfiguration": {
+    "threads": 1,
+    "minimumForks": 3,
+    "minimumWarmupIterations": 5,
+    "minimumWarmupTime": "1 s",
+    "warmupBatchSize": 1,
+    "minimumMeasurementIterations": 10,
+    "minimumMeasurementTime": "1 s",
+    "measurementBatchSize": 1,
+    "requiredJvmArgumentPrefixes": [
+      "-Dxmage.benchmark.fixture="
+    ]
+  },
   "rules": [
     {
       "benchmark": "org.mage.benchmark.GameCopyBenchmark.copyGame",

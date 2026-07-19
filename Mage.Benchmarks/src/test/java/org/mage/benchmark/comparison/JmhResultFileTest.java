@@ -33,6 +33,18 @@ public class JmhResultFileTest {
     }
 
     @Test
+    public void treatsJmhOmittedParamsAsEmpty() throws Exception {
+        String result = validResult("example.Benchmark.operation", "100.0", "[98.0, 102.0]")
+                .replace("\"params\":{},", "");
+        Path path = write("no-params.json", "[" + result + "]");
+
+        JmhResultFile.Result parsed = JmhResultFile.read(path).getResults().get(0);
+
+        assertEquals("example.Benchmark.operation|avgt|us/op|{}", parsed.key());
+        assertEquals(0, parsed.getParams().size());
+    }
+
+    @Test
     public void rejectsDuplicateResultKeys() throws Exception {
         String result = validResult("example.Benchmark.operation", "100.0", "[98.0, 102.0]");
         Path path = write("duplicates.json", "[" + result + "," + result + "]");
@@ -42,6 +54,20 @@ public class JmhResultFileTest {
                 () -> JmhResultFile.read(path));
 
         assertEquals(true, error.getMessage().contains("Duplicate JMH result key"));
+    }
+
+    @Test
+    public void rejectsInconsistentRunConfigurationWithinFile() throws Exception {
+        String first = validResult("example.Benchmark.first", "100.0", "[98.0, 102.0]");
+        String second = validResult("example.Benchmark.second", "100.0", "[98.0, 102.0]")
+                .replace("\"threads\":1", "\"threads\":2");
+        Path path = write("configuration.json", "[" + first + "," + second + "]");
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> JmhResultFile.read(path));
+
+        assertEquals(true, error.getMessage().contains("inconsistent run configurations"));
     }
 
     @Test
@@ -76,7 +102,12 @@ public class JmhResultFileTest {
 
     private static String validResult(String benchmark, String score, String confidence) {
         return "{\"benchmark\":\"" + benchmark + "\","
-                + "\"mode\":\"avgt\",\"params\":{},"
+                + "\"jmhVersion\":\"1.37\",\"mode\":\"avgt\","
+                + "\"threads\":1,\"forks\":3,\"jvm\":\"/usr/bin/java\",\"jvmArgs\":[],"
+                + "\"jdkVersion\":\"1.8.0\",\"vmName\":\"OpenJDK 64-Bit Server VM\","
+                + "\"vmVersion\":\"25.0\",\"warmupIterations\":5,\"warmupTime\":\"1 s\","
+                + "\"warmupBatchSize\":1,\"measurementIterations\":10,"
+                + "\"measurementTime\":\"1 s\",\"measurementBatchSize\":1,\"params\":{},"
                 + "\"primaryMetric\":{\"score\":" + score + ",\"scoreError\":2.0,"
                 + "\"scoreConfidence\":" + confidence + ",\"scoreUnit\":\"us/op\"},"
                 + "\"secondaryMetrics\":{}}";

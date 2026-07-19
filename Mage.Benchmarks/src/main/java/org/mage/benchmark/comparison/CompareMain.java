@@ -88,7 +88,6 @@ public final class CompareMain {
     private static void writeNew(Path path, CombinedReport report) throws Exception {
         Gson gson = new GsonBuilder()
                 .setPrettyPrinting()
-                .serializeSpecialFloatingPointValues()
                 .create();
         try (Writer writer = Files.newBufferedWriter(
                 path,

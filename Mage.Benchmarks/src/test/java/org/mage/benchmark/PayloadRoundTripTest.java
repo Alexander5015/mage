@@ -10,10 +10,18 @@ import org.mage.benchmark.support.JavaSerialization;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class PayloadRoundTripTest {
+
+    @Test
+    public void benchmarkSetupValidatesPreparedPayloads() throws Exception {
+        new PayloadCompressionBenchmark().setUp();
+        new PayloadSerializationBenchmark().setUp();
+    }
 
     @Test
     public void gameViewCompressionPreservesShape() throws Exception {
@@ -21,7 +29,7 @@ public class PayloadRoundTripTest {
         Object zipped = CompressUtil.compress(original);
         assertTrue(zipped instanceof ZippedObject);
         GameView restored = (GameView) CompressUtil.decompress(zipped);
-        assertEquals(original.getPlayers().size(), restored.getPlayers().size());
+        assertEquivalentGameView(original, restored);
     }
 
     @Test
@@ -29,7 +37,7 @@ public class PayloadRoundTripTest {
         GameView original = DeterministicGameFixture.create().getGameView();
         byte[] bytes = JavaSerialization.serialize(original);
         GameView restored = (GameView) JavaSerialization.deserialize(bytes);
-        assertEquals(original.getPlayers().size(), restored.getPlayers().size());
+        assertEquivalentGameView(original, restored);
     }
 
     @Test
@@ -37,5 +45,18 @@ public class PayloadRoundTripTest {
         List<String> original = Arrays.asList("game-update", "turn-1", "player-a");
         assertEquals(original, CompressUtil.decompress(CompressUtil.compress(original)));
         assertEquals(original, JavaSerialization.deserialize(JavaSerialization.serialize(original)));
+    }
+
+    private static void assertEquivalentGameView(GameView original, GameView restored) throws Exception {
+        assertNotNull(restored);
+        assertEquals(original.getPlayers().size(), restored.getPlayers().size());
+        assertEquals(
+                original.getPlayers().get(0).getBattlefield().size()
+                        + original.getPlayers().get(1).getBattlefield().size(),
+                restored.getPlayers().get(0).getBattlefield().size()
+                        + restored.getPlayers().get(1).getBattlefield().size());
+        assertArrayEquals(
+                JavaSerialization.serialize(original),
+                JavaSerialization.serialize(restored));
     }
 }

@@ -25,10 +25,10 @@ Compare two Git refs with full AB/BA measurements:
 
 ```bash
 scripts/benchmarks/compare-refs.sh <baseline-ref> <candidate-ref>
-scripts/benchmarks/compare-refs.sh <baseline-ref> <candidate-ref> 'org.mage.benchmark.GameCopyBenchmark.*'
 ```
 
 The comparison runner resolves both refs to immutable commits, creates detached temporary worktrees, builds both versions, and resolves one absolute Java executable for all four runs and both CLIs.
+It always runs the complete protected suite. Scoped claim runs are intentionally unsupported because omitting a policy-covered workload would make the comparison fail closed.
 
 ## Deterministic workloads
 
@@ -46,11 +46,11 @@ The tracked policy covers exactly eleven average-time workloads:
 10. Java-serialize the control payload.
 11. Java-deserialize the control payload.
 
-The real payload fixture always contains two players and 18 battlefield permanents. Decompression and deserialization inputs are prepared outside the measured operation. The control payload helps distinguish fixed protocol overhead from costs that scale with the game view.
+The real payload fixture always contains two players and 18 battlefield permanents, disables initial library shuffling, and embeds a canonical fingerprint covering representative `Game` and `GameView` state. A full comparison serializes one fixture with the baseline code and passes that exact file to every baseline and candidate fork. Every load recomputes and verifies the baseline fingerprint, so serialization changes cannot silently drop state; random UUIDs, wall-clock fields, and map iteration order also cannot change the measured input between pairings. Decompression and deserialization inputs are prepared outside the measured operation. The control payload helps distinguish fixed protocol overhead from costs that scale with the game view.
 
 ## What counts as a guaranteed improvement
 
-The full runner executes `AB baseline`, `AB candidate`, `BA candidate`, and `BA baseline`, each with three forks, five warmup iterations, ten measurement iterations, one thread, and the JMH GC profiler. The reversed second pair reduces sensitivity to machine drift and run order.
+The full runner executes `AB baseline`, `AB candidate`, `BA candidate`, and `BA baseline`, each with three forks, five one-second warmup iterations, ten one-second measurement iterations, one thread, and the JMH GC profiler. These minimums and the required shared-fixture JVM argument are encoded in `benchmark-policy.json` and checked against actual JMH metadata. Equally weak runs cannot become claim-bearing merely because their settings match; longer confirmatory runs may exceed the minimums. The reversed second pair reduces sensitivity to machine drift and run order.
 
 Every policy-covered benchmark must pass in both pairings:
 
@@ -60,6 +60,8 @@ Every policy-covered benchmark must pass in both pairings:
 - benchmark keys, modes, units, parameters, environment fields, and policy coverage match exactly.
 
 Missing metrics, incompatible environments, dirty worktrees, extra or missing benchmarks, malformed data, and non-finite values fail closed. “Guaranteed improvement” therefore means only that the candidate satisfied these benchmark-scoped gates on the recorded host and JVM. It is not a universal latency guarantee for every game, workload, machine, or deployment.
+
+The runner also requires the complete `Mage.Benchmarks` Git tree to match between refs. Benchmark, fixture, policy, and comparator changes must be landed and validated separately before that commit becomes the baseline for a production optimization. Both refs run focused fixture, payload round-trip, and copy-independence tests before measurements begin; the copy checks require distinct objects, representative state preservation, and mutation isolation for `Game`, `GameState`, and `Battlefield`.
 
 ## Results and cleanup
 

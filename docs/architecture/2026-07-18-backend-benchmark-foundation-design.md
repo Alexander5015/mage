@@ -1,7 +1,7 @@
 # Backend Benchmark Foundation Design
 
 Date: 2026-07-18
-Status: Proposed for implementation
+Status: Implemented
 Branch: `backend-benchmarks`
 
 ## Context
@@ -72,7 +72,7 @@ The first benchmarks need realistic game objects without starting a network serv
 
 This reuses the same fixture construction used by correctness tests while leaving the default `Mage.Tests` artifact and lifecycle unchanged. Benchmark state setup occurs outside timed JMH methods. A setup failure or a fixture that does not satisfy explicit invariants aborts the run rather than producing a misleading measurement.
 
-Fixture definitions are named and versioned in source. Initial payload sizes use fixed cards, zones, turn state, and player counts; they do not use random card selection, wall-clock values, live databases, or remote services.
+Fixture definitions are named and versioned in source. Initial payload sizes use fixed cards, zones, turn state, and player counts; they do not use random card selection, live databases, or remote services. Claim-bearing comparisons serialize one baseline-created fixture and load that exact object graph in every baseline and candidate fork, eliminating random identifiers, map ordering, shuffling, and wall-clock values as cross-run input differences. The serialized fixture also stores a canonical fingerprint over representative `Game` and `GameView` state; every load recomputes it and fails if serialization changes dropped or defaulted protected state.
 
 ### Initial benchmark families
 
@@ -84,7 +84,7 @@ Measure operations that are already recognized as backend costs:
 - `GameState.copy()` for the same state; and
 - battlefield reset/copy behavior represented by the existing ignored state-copying test.
 
-Each invocation copies from a prepared source fixture that the benchmark treats as read-only. JMH consumes the result through `Blackhole` so dead-code elimination cannot remove the operation. Fixture invariants are checked between iterations to detect accidental source mutation.
+Each invocation copies from a prepared source fixture that the benchmark treats as read-only. JMH consumes the result through `Blackhole` so dead-code elimination cannot remove the operation. Fixture invariants are checked between iterations to detect accidental source mutation. Focused pre-measurement tests also require each copy to have distinct identity, preserve representative state, and remain independent when the copy is mutated.
 
 #### Callback payload compression
 
@@ -107,7 +107,7 @@ Two run profiles serve different purposes:
 - **Smoke:** one fork with short warmup and measurement, used only to verify discovery, setup, and result generation. Smoke results cannot support performance claims.
 - **Comparison:** three forks, five one-second warmup iterations, and ten one-second measurement iterations by default, with one benchmark thread. JMH's GC profiler is enabled to collect normalized allocation and GC metrics.
 
-The comparison settings are stored in versioned configuration and copied into each result manifest. A longer confirmatory run can increase forks or iteration duration without weakening the policy.
+Claim-eligible minimums are stored in the versioned policy and validated against the actual metadata emitted by JMH. Matching but underpowered runs fail closed. A longer confirmatory run can increase forks, iterations, or iteration duration without weakening the policy.
 
 ### Results and environment manifest
 
@@ -125,7 +125,7 @@ Raw results and manifests live below an ignored results directory. They are reta
 
 ### Baseline/candidate comparison
 
-A repository command accepts two refs, creates isolated temporary Git worktrees, builds both with the benchmark profile, and runs the same benchmark selection using the current JVM. To reduce execution-order and thermal bias, a comparison consists of two pairings in AB/BA order: baseline then candidate, followed by candidate then baseline. The candidate must pass the policy in both pairings. It refuses to start if a ref cannot be resolved or if the requested output location would overwrite an existing run.
+A repository command accepts two refs, creates isolated temporary Git worktrees, builds both with the benchmark profile, and runs the complete protected suite using the current JVM. To reduce execution-order and thermal bias, a comparison consists of two pairings in AB/BA order: baseline then candidate, followed by candidate then baseline. The candidate must pass the policy in both pairings. It refuses to start if a ref cannot be resolved, if benchmark-module trees differ, or if the requested output location would overwrite an existing run. Benchmark contract changes must land separately before serving as the baseline for production optimization work.
 
 The comparison tool reads JMH JSON and the two manifests. It fails closed when:
 
@@ -133,6 +133,7 @@ The comparison tool reads JMH JSON and the two manifests. It fails closed when:
 - a policy-required primary or secondary metric is missing;
 - JVM or CPU identity differs materially between the two runs;
 - a score contains invalid numeric data;
+- actual forks, threads, warmups, measurements, batch sizes, or required fixture arguments do not satisfy the tracked claim policy;
 - the minimum improvement is not reached;
 - confidence intervals overlap; or
 - a protected metric exceeds its regression tolerance.

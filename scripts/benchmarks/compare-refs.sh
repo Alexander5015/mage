@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 2 || $# -gt 3 ]]; then
-    echo "Usage: $0 <baseline-ref> <candidate-ref> [benchmark-regex]" >&2
+if [[ $# -ne 2 ]]; then
+    echo "Usage: $0 <baseline-ref> <candidate-ref>" >&2
     exit 2
 fi
 
@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 BASELINE_REF="$1"
 CANDIDATE_REF="$2"
-BENCHMARK_REGEX="${3:-org.mage.benchmark.*}"
+BENCHMARK_REGEX="org.mage.benchmark.*"
 
 refuse_disabled_compression() {
     local variable value
@@ -56,6 +56,13 @@ refuse_disabled_compression
 JAVA_EXECUTABLE="$(resolve_java)"
 BASELINE_COMMIT="$(git -C "$REPO_ROOT" rev-parse --verify --end-of-options "${BASELINE_REF}^{commit}")"
 CANDIDATE_COMMIT="$(git -C "$REPO_ROOT" rev-parse --verify --end-of-options "${CANDIDATE_REF}^{commit}")"
+BASELINE_WORKLOAD_TREE="$(git -C "$REPO_ROOT" rev-parse --verify "${BASELINE_COMMIT}:Mage.Benchmarks")"
+CANDIDATE_WORKLOAD_TREE="$(git -C "$REPO_ROOT" rev-parse --verify "${CANDIDATE_COMMIT}:Mage.Benchmarks")"
+if [[ "$BASELINE_WORKLOAD_TREE" != "$CANDIDATE_WORKLOAD_TREE" ]]; then
+    echo "Benchmark workload definitions differ between refs." >&2
+    echo "Land benchmark-contract changes separately, then compare from that new baseline." >&2
+    exit 2
+fi
 BASELINE_SHORT="$(git -C "$REPO_ROOT" rev-parse --short "$BASELINE_COMMIT")"
 CANDIDATE_SHORT="$(git -C "$REPO_ROOT" rev-parse --short "$CANDIDATE_COMMIT")"
 
@@ -104,16 +111,35 @@ CANDIDATE_ADDED=true
 
 (
     cd "$BASELINE_WORKTREE"
-    mvn -Pbenchmarks -pl Mage.Benchmarks -am -DskipTests package
+    mvn -Pbenchmarks -pl Mage.Benchmarks -am \
+        -Dtest=PayloadRoundTripTest,DeterministicGameFixtureTest \
+        -Dsurefire.failIfNoSpecifiedTests=false package
 ) 2>&1 | tee "$RESULT_DIR/build-baseline.log"
 (
     cd "$CANDIDATE_WORKTREE"
-    mvn -Pbenchmarks -pl Mage.Benchmarks -am -DskipTests package
+    mvn -Pbenchmarks -pl Mage.Benchmarks -am \
+        -Dtest=PayloadRoundTripTest,DeterministicGameFixtureTest \
+        -Dsurefire.failIfNoSpecifiedTests=false package
 ) 2>&1 | tee "$RESULT_DIR/build-candidate.log"
 
-RUN_CONFIG="comparison:f3:wi5:i10:w1s:r1s:t1:gc:$BENCHMARK_REGEX"
 BASELINE_JAR="$BASELINE_WORKTREE/Mage.Benchmarks/target/benchmarks.jar"
 POLICY="$BASELINE_WORKTREE/Mage.Benchmarks/benchmark-policy.json"
+CLAIM_FIXTURE="$RESULT_DIR/claim-fixture.bin"
+(
+    cd "$BASELINE_WORKTREE/Mage.Tests"
+    "$JAVA_EXECUTABLE" -cp "$BASELINE_JAR" org.mage.benchmark.fixture.FixtureMain \
+        "$CLAIM_FIXTURE"
+)
+test -s "$CLAIM_FIXTURE"
+if command -v shasum >/dev/null 2>&1; then
+    FIXTURE_SHA256="$(shasum -a 256 "$CLAIM_FIXTURE" | awk '{print $1}')"
+elif command -v sha256sum >/dev/null 2>&1; then
+    FIXTURE_SHA256="$(sha256sum "$CLAIM_FIXTURE" | awk '{print $1}')"
+else
+    echo "Unable to find shasum or sha256sum for fixture verification" >&2
+    exit 2
+fi
+RUN_CONFIG="comparison:f3:wi5:i10:w1s:r1s:t1:gc:full:workload-tree=$BASELINE_WORKLOAD_TREE:fixture=$FIXTURE_SHA256"
 
 run_jmh() {
     local label="$1" worktree="$2" jar="$3" output="$4"
@@ -123,6 +149,7 @@ run_jmh() {
         cd "$worktree/Mage.Tests"
         "$JAVA_EXECUTABLE" -jar "$jar" "$BENCHMARK_REGEX" \
             -f 3 -wi 5 -i 10 -w 1s -r 1s -t 1 -prof gc \
+            -jvmArgsAppend "-Dxmage.benchmark.fixture=$CLAIM_FIXTURE" \
             -rf json -rff "$output/results.json"
     ) 2>&1 | tee "$output/jmh.log"
     test -s "$output/results.json"

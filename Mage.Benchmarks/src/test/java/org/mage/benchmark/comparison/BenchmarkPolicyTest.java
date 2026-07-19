@@ -14,6 +14,13 @@ import static org.junit.Assert.assertThrows;
 
 public class BenchmarkPolicyTest {
 
+    private static final String CLAIM_CONFIGURATION = "\"claimConfiguration\":{"
+            + "\"threads\":1,\"minimumForks\":3,"
+            + "\"minimumWarmupIterations\":5,\"minimumWarmupTime\":\"1 s\","
+            + "\"warmupBatchSize\":1,\"minimumMeasurementIterations\":10,"
+            + "\"minimumMeasurementTime\":\"1 s\",\"measurementBatchSize\":1,"
+            + "\"requiredJvmArgumentPrefixes\":[\"-Dxmage.benchmark.fixture=\"]},";
+
     private static final String[] BENCHMARKS = {
             "org.mage.benchmark.GameCopyBenchmark.copyGame",
             "org.mage.benchmark.GameCopyBenchmark.copyGameState",
@@ -44,6 +51,7 @@ public class BenchmarkPolicyTest {
             assertEquals(2.0, rule.getMaximumAllocationRegressionPercent(), 0.0);
             assertEquals("gc.alloc.rate.norm", rule.getAllocationMetric());
         }
+        assertEquals(0, policy.claimConfigurationProblems(results.getRunConfiguration()).size());
     }
 
     @Test
@@ -69,6 +77,7 @@ public class BenchmarkPolicyTest {
                 + "\"minimumImprovementPercent\":5.0,"
                 + "\"maximumAllocationRegressionPercent\":2.0,"
                 + "\"allocationMetric\":\"gc.alloc.rate.norm\","
+                + CLAIM_CONFIGURATION
                 + "\"rules\":[" + rule + "," + rule + "]}");
 
         IllegalArgumentException error = assertThrows(
@@ -93,6 +102,21 @@ public class BenchmarkPolicyTest {
         assertEquals(true, error.getMessage().contains("positive finite"));
     }
 
+    @Test
+    public void rejectsMissingClaimConfiguration() throws Exception {
+        Path policyPath = write("missing-claim-policy.json", "{"
+                + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumAllocationRegressionPercent\":2.0,"
+                + "\"allocationMetric\":\"gc.alloc.rate.norm\","
+                + "\"rules\":[]}");
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> BenchmarkPolicy.load(policyPath));
+
+        assertEquals(true, error.getMessage().contains("claimConfiguration"));
+    }
+
     private Path writeResults(String[] benchmarks) throws Exception {
         StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < benchmarks.length; i++) {
@@ -100,7 +124,13 @@ public class BenchmarkPolicyTest {
                 json.append(',');
             }
             json.append("{\"benchmark\":\"").append(benchmarks[i]).append("\","
-                    + "\"mode\":\"avgt\",\"params\":{},"
+                    + "\"jmhVersion\":\"1.37\",\"mode\":\"avgt\","
+                    + "\"threads\":1,\"forks\":3,\"jvm\":\"/usr/bin/java\","
+                    + "\"jvmArgs\":[\"-Dxmage.benchmark.fixture=/tmp/fixture.bin\"],"
+                    + "\"jdkVersion\":\"1.8.0\",\"vmName\":\"OpenJDK 64-Bit Server VM\","
+                    + "\"vmVersion\":\"25.0\",\"warmupIterations\":5,\"warmupTime\":\"1 s\","
+                    + "\"warmupBatchSize\":1,\"measurementIterations\":10,"
+                    + "\"measurementTime\":\"1 s\",\"measurementBatchSize\":1,\"params\":{},"
                     + "\"primaryMetric\":{\"score\":100.0,\"scoreError\":2.0,"
                     + "\"scoreConfidence\":[98.0,102.0],\"scoreUnit\":\"us/op\"},"
                     + "\"secondaryMetrics\":{}}");
