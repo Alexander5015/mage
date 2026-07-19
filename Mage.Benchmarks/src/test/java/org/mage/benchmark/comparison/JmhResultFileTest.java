@@ -94,6 +94,19 @@ public class JmhResultFileTest {
         assertEquals(true, error.getMessage().contains("finite"));
     }
 
+    @Test
+    public void acceptsJmhAggregateSecondaryMetricWithUndefinedScoreError() throws Exception {
+        String result = validResult("example.Benchmark.operation", "100.0", "[98.0, 102.0]")
+                .replace("\"secondaryMetrics\":{}", "\"secondaryMetrics\":{"
+                        + "\"gc.count\":{\"score\":401.0,\"scoreError\":\"NaN\","
+                        + "\"scoreConfidence\":[401.0,401.0],\"scoreUnit\":\"counts\"}}");
+        Path path = write("aggregate-secondary.json", "[" + result + "]");
+
+        JmhResultFile.Result parsed = JmhResultFile.read(path).getResults().get(0);
+
+        assertEquals(401.0, parsed.secondaryMetric("gc.count").getScore(), 0.0);
+    }
+
     private Path write(String name, String value) throws Exception {
         Path path = temporaryFolder.newFile(name).toPath();
         Files.write(path, value.getBytes(StandardCharsets.UTF_8));

@@ -129,14 +129,15 @@ public final class JmhResultFile {
                 }
             }
             params = Collections.unmodifiableMap(sortedParams);
-            primaryMetric = new Metric(raw.primaryMetric, prefix + " primary metric");
+            primaryMetric = new Metric(raw.primaryMetric, prefix + " primary metric", true);
             if (raw.secondaryMetrics == null) {
                 throw new IllegalArgumentException(prefix + " secondary metrics are missing");
             }
             Map<String, Metric> metrics = new LinkedHashMap<>();
             for (Map.Entry<String, RawMetric> entry : raw.secondaryMetrics.entrySet()) {
                 String name = requireText(entry.getKey(), prefix + " secondary metric name");
-                metrics.put(name, new Metric(entry.getValue(), prefix + " secondary metric " + name));
+                metrics.put(name, new Metric(
+                        entry.getValue(), prefix + " secondary metric " + name, false));
             }
             secondaryMetrics = Collections.unmodifiableMap(metrics);
         }
@@ -328,15 +329,17 @@ public final class JmhResultFile {
         private final double[] scoreConfidence;
         private final String scoreUnit;
 
-        private Metric(RawMetric raw, String description) {
+        private Metric(RawMetric raw, String description, boolean requireFiniteScoreError) {
             if (raw == null) {
                 throw new IllegalArgumentException(description + " is missing");
             }
             if (raw.score == null || !isFinite(raw.score)) {
                 throw new IllegalArgumentException(description + " score must be finite");
             }
-            if (raw.scoreError == null || !isFinite(raw.scoreError)) {
-                throw new IllegalArgumentException(description + " score error must be finite");
+            if (raw.scoreError == null
+                    || (requireFiniteScoreError && !isFinite(raw.scoreError))) {
+                throw new IllegalArgumentException(description + " score error must be present"
+                        + (requireFiniteScoreError ? " and finite" : ""));
             }
             if (raw.scoreConfidence == null || raw.scoreConfidence.length != 2) {
                 throw new IllegalArgumentException(description + " must have a two-value confidence pair");
