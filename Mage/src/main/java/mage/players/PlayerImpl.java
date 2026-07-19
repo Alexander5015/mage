@@ -74,6 +74,8 @@ import java.util.stream.Collectors;
  */
 public abstract class PlayerImpl implements Player, Serializable {
 
+    private static final long serialVersionUID = 3007642706017483003L;
+
     private static final Logger logger = Logger.getLogger(PlayerImpl.class);
 
     /**

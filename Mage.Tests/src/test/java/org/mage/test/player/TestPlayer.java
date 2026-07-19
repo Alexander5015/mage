@@ -70,6 +70,8 @@ import mage.watchers.common.AttackedOrBlockedThisCombatWatcher;
  */
 public class TestPlayer implements Player {
 
+    private static final long serialVersionUID = -5943957894685447844L;
+
     private static final Logger LOGGER = Logger.getLogger(TestPlayer.class);
 
     private static final int takeMaxTargetsPerChoose = Integer.MAX_VALUE; // TODO: set 1 here, fix broken tests and replace all "for (String targetDefinition" by targets.get(0)
