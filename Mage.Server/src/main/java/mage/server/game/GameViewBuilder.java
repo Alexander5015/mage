@@ -16,7 +16,7 @@ final class GameViewBuilder {
 
     static GameView fromStableGameForPlayer(Game game, UUID playerId, UUID userId) {
         ThreadUtils.ensureRunInGameThread();
-        return fromDefensiveCopyForPlayer(game, playerId, userId);
+        return renderPlayerView(game, playerId, userId);
     }
 
     static GameView fromDefensiveCopyForPlayer(Game game, UUID playerId, UUID userId) {
@@ -25,7 +25,7 @@ final class GameViewBuilder {
 
     static GameView fromStableGameForWatcher(Game game, UUID userId) {
         ThreadUtils.ensureRunInGameThread();
-        return fromDefensiveCopyForWatcher(game, userId);
+        return renderWatcherView(game, userId);
     }
 
     static GameView fromDefensiveCopyForWatcher(Game game, UUID userId) {
