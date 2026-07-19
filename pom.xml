@@ -251,6 +251,15 @@
         <module>Mage.Reports</module>
     </modules>
 
+    <profiles>
+        <profile>
+            <id>benchmarks</id>
+            <modules>
+                <module>Mage.Benchmarks</module>
+            </modules>
+        </profile>
+    </profiles>
+
     <repositories>
         <repository>
             <id>jboss-public-repository</id>

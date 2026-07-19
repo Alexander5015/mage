@@ -128,4 +128,27 @@
         <root.dir>${project.basedir}/..</root.dir>
     </properties>
 
+    <profiles>
+        <profile>
+            <id>benchmarks</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>benchmark-test-jar</id>
+                                <phase>process-test-classes</phase>
+                                <goals>
+                                    <goal>test-jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
