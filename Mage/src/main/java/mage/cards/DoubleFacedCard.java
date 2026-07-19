@@ -9,6 +9,7 @@ import mage.abilities.costs.mana.ManaCosts;
 import mage.constants.*;
 import mage.counters.Counter;
 import mage.counters.Counters;
+import mage.game.CardState;
 import mage.game.Game;
 import mage.game.GameState;
 import mage.game.events.ZoneChangeEvent;
@@ -180,6 +181,12 @@ public abstract class DoubleFacedCard extends CardImpl implements CardWithHalves
     @Override
     public Counters getCounters(GameState state) {
         return state.getCardState(leftHalfCard.getId()).getCounters();
+    }
+
+    @Override
+    public Counters getCountersIfExists(GameState state) {
+        CardState cardState = state.getCardStateIfExists(leftHalfCard.getId());
+        return cardState == null ? null : cardState.getCounters();
     }
 
     @Override

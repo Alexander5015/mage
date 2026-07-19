@@ -156,6 +156,13 @@ public interface Card extends MageObject, Ownerable {
 
     Counters getCounters(GameState state);
 
+    /**
+     * Returns the existing card counters without initializing card state.
+     *
+     * @return the stored counters, or {@code null} if no card state exists
+     */
+    Counters getCountersIfExists(GameState state);
+
     void addAbility(Ability ability);
 
     void loseAllAbilities(Game game);

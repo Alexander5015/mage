@@ -25,6 +25,7 @@ import mage.cards.repository.TokenRepository;
 import mage.constants.*;
 import mage.counters.Counter;
 import mage.counters.CounterType;
+import mage.counters.Counters;
 import mage.designations.Designation;
 import mage.filter.FilterMana;
 import mage.game.ControllableOrOwnerable;
@@ -506,10 +507,13 @@ public class CardView extends SimpleCardView {
             }
             this.loyalty = "";
             this.defense = "";
-            if (game != null && card.getCounters(game) != null && !card.getCounters(game).isEmpty()) {
-                counters = new ArrayList<>();
-                for (Counter counter : card.getCounters(game).values()) {
-                    counters.add(new CounterView(counter));
+            if (game != null) {
+                Counters cardCounters = card.getCountersIfExists(game.getState());
+                if (cardCounters != null && !cardCounters.isEmpty()) {
+                    counters = new ArrayList<>();
+                    for (Counter counter : cardCounters.values()) {
+                        counters.add(new CounterView(counter));
+                    }
                 }
             }
         }

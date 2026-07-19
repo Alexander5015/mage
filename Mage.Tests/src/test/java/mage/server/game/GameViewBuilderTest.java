@@ -1,6 +1,7 @@
 package mage.server.game;
 
 import mage.abilities.Ability;
+import mage.cards.Card;
 import mage.constants.PhaseStep;
 import mage.constants.Zone;
 import mage.game.command.Emblem;
@@ -13,11 +14,13 @@ import org.mage.test.serverside.base.CardTestPlayerBase;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class GameViewBuilderTest extends CardTestPlayerBase {
@@ -82,6 +85,49 @@ public class GameViewBuilderTest extends CardTestPlayerBase {
                 normalizeVolatilePriorityTimeSavedTimeMs(defensive),
                 normalizeVolatilePriorityTimeSavedTimeMs(direct)
         );
+    }
+
+    @Test
+    public void directPlayerRenderingDoesNotInitializeOrdinaryCardState() throws IOException {
+        Card card = addFreshOrdinaryCardToGraveyard();
+        assertNull(currentGame.getState().getCardStateIfExists(card.getId()));
+        byte[] before = serialize(currentGame);
+
+        GameViewBuilder.renderPlayerView(currentGame, playerA.getId(), UUID.randomUUID());
+
+        assertNull(currentGame.getState().getCardStateIfExists(card.getId()));
+        assertArrayEquals(before, serialize(currentGame));
+    }
+
+    @Test
+    public void directWatcherRenderingDoesNotInitializeOrdinaryCardState() throws IOException {
+        Card card = addFreshOrdinaryCardToGraveyard();
+        assertNull(currentGame.getState().getCardStateIfExists(card.getId()));
+        byte[] before = serialize(currentGame);
+
+        GameViewBuilder.renderWatcherView(currentGame, UUID.randomUUID());
+
+        assertNull(currentGame.getState().getCardStateIfExists(card.getId()));
+        assertArrayEquals(before, serialize(currentGame));
+    }
+
+    private Card addFreshOrdinaryCardToGraveyard() {
+        setStrictChooseMode(true);
+        setStopAt(1, PhaseStep.END_TURN);
+        execute();
+
+        addCard(Zone.GRAVEYARD, playerA, "Forest", 1);
+        Card card = getGraveCards(playerA).get(0);
+        currentGame.cheat(
+                playerA.getId(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.singletonList(card),
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+        return card;
     }
 
     private static byte[] serialize(Object object) throws IOException {

@@ -255,25 +255,24 @@ public abstract class CardImpl extends MageObjectImpl implements Card {
             return abilities; // deck editor with empty game
         }
 
-        CardState cardState = game.getState().getCardState(this.getId());
-        if (cardState == null) {
-            return abilities;
-        }
+        CardState cardState = game.getState().getCardStateIfExists(this.getId());
 
         // collects all abilities
         Abilities<Ability> all = new AbilitiesImpl<>();
 
         // basic
-        if (!cardState.hasLostAllAbilities()) {
+        if (cardState == null || !cardState.hasLostAllAbilities()) {
             all.addAll(abilities);
         }
 
         // dynamic
-        all.addAll(cardState.getAbilities());
+        if (cardState != null) {
+            all.addAll(cardState.getAbilities());
+        }
 
         // workaround to add dynamic flashback ability from main card to all parts (example: Snapcaster Mage gives flashback to split card)
         if (!this.getId().equals(this.getMainCard().getId())) {
-            CardState mainCardState = game.getState().getCardState(this.getMainCard().getId());
+            CardState mainCardState = game.getState().getCardStateIfExists(this.getMainCard().getId());
             if (this.getSpellAbility() != null // lands can't be casted (haven't spell ability), so ignore it
                     && mainCardState != null
                     && !mainCardState.hasLostAllAbilities()
@@ -612,7 +611,8 @@ public abstract class CardImpl extends MageObjectImpl implements Card {
 
     @Override
     public boolean isFaceDown(Game game) {
-        return game.getState().getCardState(objectId).isFaceDown();
+        CardState cardState = game.getState().getCardStateIfExists(objectId);
+        return cardState != null && cardState.isFaceDown();
     }
 
     @Override
@@ -736,6 +736,12 @@ public abstract class CardImpl extends MageObjectImpl implements Card {
     @Override
     public Counters getCounters(GameState state) {
         return state.getCardState(this.objectId).getCounters();
+    }
+
+    @Override
+    public Counters getCountersIfExists(GameState state) {
+        CardState cardState = state.getCardStateIfExists(this.objectId);
+        return cardState == null ? null : cardState.getCounters();
     }
 
     @Override

@@ -1059,6 +1059,11 @@ public class Spell extends StackObjectImpl implements Card {
     }
 
     @Override
+    public Counters getCountersIfExists(GameState state) {
+        return card.getCountersIfExists(state);
+    }
+
+    @Override
     public boolean addCounters(Counter counter, Ability source, Game game) {
         return card.addCounters(counter, source, game);
     }
