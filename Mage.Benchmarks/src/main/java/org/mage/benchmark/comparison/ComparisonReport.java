@@ -50,7 +50,9 @@ public final class ComparisonReport {
         private final Double candidateAllocation;
         private final Double allocationRegressionPercent;
         private final double minimumImprovementPercent;
+        private final double maximumTimeRegressionPercent;
         private final double maximumAllocationRegressionPercent;
+        private final BenchmarkPolicy.Expectation expectation;
         private final boolean passed;
         private final List<String> reasons;
 
@@ -76,7 +78,9 @@ public final class ComparisonReport {
             this.candidateAllocation = candidateAllocation;
             this.allocationRegressionPercent = allocationRegressionPercent;
             this.minimumImprovementPercent = rule.getMinimumImprovementPercent();
+            this.maximumTimeRegressionPercent = rule.getMaximumTimeRegressionPercent();
             this.maximumAllocationRegressionPercent = rule.getMaximumAllocationRegressionPercent();
+            this.expectation = rule.getExpectation();
             this.reasons = Collections.unmodifiableList(new ArrayList<>(reasons));
             this.passed = reasons.isEmpty();
         }
@@ -129,8 +133,16 @@ public final class ComparisonReport {
             return minimumImprovementPercent;
         }
 
+        public double getMaximumTimeRegressionPercent() {
+            return maximumTimeRegressionPercent;
+        }
+
         public double getMaximumAllocationRegressionPercent() {
             return maximumAllocationRegressionPercent;
+        }
+
+        public BenchmarkPolicy.Expectation getExpectation() {
+            return expectation;
         }
 
         public boolean isPassed() {

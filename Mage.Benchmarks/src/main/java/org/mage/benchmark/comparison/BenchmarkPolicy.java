@@ -47,6 +47,8 @@ public final class BenchmarkPolicy {
         }
         double defaultImprovement = requirePositiveFinite(
                 raw.minimumImprovementPercent, "minimumImprovementPercent");
+        double defaultMaximumTimeRegression = requirePositiveFinite(
+                raw.maximumTimeRegressionPercent, "maximumTimeRegressionPercent");
         double defaultAllocation = requirePositiveFinite(
                 raw.maximumAllocationRegressionPercent, "maximumAllocationRegressionPercent");
         String defaultAllocationMetric = requireText(raw.allocationMetric, "allocationMetric");
@@ -65,6 +67,7 @@ public final class BenchmarkPolicy {
                     raw.rules[i],
                     i,
                     defaultImprovement,
+                    defaultMaximumTimeRegression,
                     defaultAllocation,
                     defaultAllocationMetric);
             Rule previous = byKey.put(rule.key(), rule);
@@ -90,6 +93,22 @@ public final class BenchmarkPolicy {
 
     public List<String> claimConfigurationProblems(JmhResultFile.RunConfiguration actual) {
         return claimConfiguration.compatibilityProblems(actual);
+    }
+
+    public enum Expectation {
+        IMPROVEMENT,
+        GUARD;
+
+        private static Expectation parse(String value, String description) {
+            if (value == null) {
+                return IMPROVEMENT;
+            }
+            try {
+                return valueOf(requireText(value, description).toUpperCase(java.util.Locale.ENGLISH));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(description + " has unsupported value: " + value, e);
+            }
+        }
     }
 
     private static double requirePositiveFinite(Double value, String description) {
@@ -271,13 +290,16 @@ public final class BenchmarkPolicy {
         private final String scoreUnit;
         private final Map<String, String> params;
         private final double minimumImprovementPercent;
+        private final double maximumTimeRegressionPercent;
         private final double maximumAllocationRegressionPercent;
         private final String allocationMetric;
+        private final Expectation expectation;
 
         private Rule(
                 RawRule raw,
                 int index,
                 double defaultImprovement,
+                double defaultMaximumTimeRegression,
                 double defaultAllocation,
                 String defaultAllocationMetric) {
             String prefix = "Benchmark policy rule at index " + index;
@@ -299,6 +321,11 @@ public final class BenchmarkPolicy {
             minimumImprovementPercent = raw.minimumImprovementPercent == null
                     ? defaultImprovement
                     : requirePositiveFinite(raw.minimumImprovementPercent, prefix + " minimumImprovementPercent");
+            maximumTimeRegressionPercent = raw.maximumTimeRegressionPercent == null
+                    ? defaultMaximumTimeRegression
+                    : requirePositiveFinite(
+                            raw.maximumTimeRegressionPercent,
+                            prefix + " maximumTimeRegressionPercent");
             maximumAllocationRegressionPercent = raw.maximumAllocationRegressionPercent == null
                     ? defaultAllocation
                     : requirePositiveFinite(
@@ -307,6 +334,7 @@ public final class BenchmarkPolicy {
             allocationMetric = raw.allocationMetric == null
                     ? defaultAllocationMetric
                     : requireText(raw.allocationMetric, prefix + " allocationMetric");
+            expectation = Expectation.parse(raw.expectation, prefix + " expectation");
         }
 
         public String key() {
@@ -317,6 +345,10 @@ public final class BenchmarkPolicy {
             return minimumImprovementPercent;
         }
 
+        public double getMaximumTimeRegressionPercent() {
+            return maximumTimeRegressionPercent;
+        }
+
         public double getMaximumAllocationRegressionPercent() {
             return maximumAllocationRegressionPercent;
         }
@@ -324,10 +356,15 @@ public final class BenchmarkPolicy {
         public String getAllocationMetric() {
             return allocationMetric;
         }
+
+        public Expectation getExpectation() {
+            return expectation;
+        }
     }
 
     private static final class RawPolicy {
         private Double minimumImprovementPercent;
+        private Double maximumTimeRegressionPercent;
         private Double maximumAllocationRegressionPercent;
         private String allocationMetric;
         private RawClaimConfiguration claimConfiguration;
@@ -352,7 +389,9 @@ public final class BenchmarkPolicy {
         private String scoreUnit;
         private Map<String, String> params;
         private Double minimumImprovementPercent;
+        private Double maximumTimeRegressionPercent;
         private Double maximumAllocationRegressionPercent;
         private String allocationMetric;
+        private String expectation;
     }
 }

@@ -88,11 +88,13 @@ public class CompareMainTest {
             throws Exception {
         Path policy = write("policy.json", "{"
                 + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumTimeRegressionPercent\":2.0,"
                 + "\"maximumAllocationRegressionPercent\":2.0,"
                 + "\"allocationMetric\":\"gc.alloc.rate.norm\","
                 + CLAIM_CONFIGURATION
                 + "\"rules\":[{\"benchmark\":\"" + BENCHMARK + "\","
-                + "\"mode\":\"avgt\",\"scoreUnit\":\"us/op\",\"params\":{}}]}");
+                + "\"mode\":\"avgt\",\"scoreUnit\":\"us/op\",\"params\":{},"
+                + "\"expectation\":\"improvement\"}]}");
         Path report = temporaryFolder.getRoot().toPath().resolve("report.json");
         Path abBaselineResults = result("ab-baseline.json", 100.0, 98.0, 102.0);
         Path abCandidateResults = result(

@@ -31,7 +31,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 result("candidate.json", "avgt", "us/op", 90.0, 88.0, 92.0, 1000.0),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertTrue(report.isPassed());
         assertTrue(report.getErrors().isEmpty());
@@ -44,7 +44,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 result("candidate.json", "avgt", "us/op", 96.0, 94.0, 98.0, 1000.0),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertEntryFailure(report, "minimum improvement");
     }
@@ -54,7 +54,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 result("candidate.json", "avgt", "us/op", 90.0, 91.0, 99.0, 1000.0),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertEntryFailure(report, "confidence");
     }
@@ -64,7 +64,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 result("candidate.json", "avgt", "us/op", 90.0, 88.0, 92.0, 1030.0),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertEntryFailure(report, "allocation regression");
     }
@@ -74,7 +74,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 0.0),
                 result("candidate.json", "avgt", "us/op", 90.0, 88.0, 92.0, 1.0),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertEntryFailure(report, "baseline is zero");
         assertEquals(null, report.getBenchmarks().get(0).getAllocationRegressionPercent());
@@ -87,7 +87,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 emptyCandidate,
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertGlobalFailure(report, "metadata set mismatch");
     }
@@ -97,7 +97,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 result("candidate.json", "avgt", "ns/op", 90000.0, 88000.0, 92000.0, 1000.0),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertGlobalFailure(report, "metadata set mismatch");
     }
@@ -113,7 +113,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 candidate,
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertGlobalFailure(report, "measurementIterations mismatch");
     }
@@ -127,7 +127,7 @@ public class BenchmarkComparatorTest {
         replace(baseline, "\"forks\":3", "\"forks\":1");
         replace(candidate, "\"forks\":3", "\"forks\":1");
 
-        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op"));
+        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op", "improvement"));
 
         assertGlobalFailure(report, "forks must be at least 3");
     }
@@ -143,7 +143,7 @@ public class BenchmarkComparatorTest {
         replace(baseline, "\"measurementTime\":\"1 s\"", "\"measurementTime\":\"1500 ms\"");
         replace(candidate, "\"measurementTime\":\"1 s\"", "\"measurementTime\":\"1500 ms\"");
 
-        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op"));
+        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op", "improvement"));
 
         assertTrue(report.isPassed());
     }
@@ -158,7 +158,7 @@ public class BenchmarkComparatorTest {
         replace(baseline, fixtureArgument, "[]");
         replace(candidate, fixtureArgument, "[]");
 
-        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op"));
+        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op", "improvement"));
 
         assertGlobalFailure(report, "missing required JVM argument prefix");
     }
@@ -173,7 +173,7 @@ public class BenchmarkComparatorTest {
         replace(baseline, fixtureArgument, "-Dxmage.benchmark.fixture=   ");
         replace(candidate, fixtureArgument, "-Dxmage.benchmark.fixture=   ");
 
-        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op"));
+        ComparisonReport report = compare(baseline, candidate, policy("avgt", "us/op", "improvement"));
 
         assertGlobalFailure(report, "missing required JVM argument prefix");
     }
@@ -183,7 +183,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
                 result("candidate.json", "avgt", "us/op", 90.0, 88.0, 92.0, null),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertEntryFailure(report, "missing protected metric");
     }
@@ -214,7 +214,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 JmhJsonFixture.write(path("baseline.json"), tracked, extraBaseline),
                 JmhJsonFixture.write(path("candidate.json"), trackedCandidate, extraCandidate),
-                policy("avgt", "us/op"));
+                policy("avgt", "us/op", "improvement"));
 
         assertGlobalFailure(report, "uncovered benchmark");
     }
@@ -224,7 +224,7 @@ public class BenchmarkComparatorTest {
         ComparisonReport report = compare(
                 result("baseline.json", "thrpt", "ops/s", 100.0, 98.0, 102.0, 1000.0),
                 result("candidate.json", "thrpt", "ops/s", 110.0, 108.0, 112.0, 1000.0),
-                policy("thrpt", "ops/s"));
+                policy("thrpt", "ops/s", "improvement"));
 
         assertTrue(report.isPassed());
         assertEquals(10.0, report.getBenchmarks().get(0).getImprovementPercent(), 0.0);
@@ -250,14 +250,48 @@ public class BenchmarkComparatorTest {
                 path(name), BENCHMARK, mode, unit, score, lowerConfidence, upperConfidence, allocation);
     }
 
-    private Path policy(String mode, String unit) throws Exception {
+    @Test
+    public void passesGuardWhenAverageTimeIsUnchangedDespiteOverlappingConfidenceIntervals() throws Exception {
+        ComparisonReport report = compare(
+                result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
+                result("candidate.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
+                policy("avgt", "us/op", "guard"));
+
+        assertTrue(report.isPassed());
+        assertEquals(BenchmarkPolicy.Expectation.GUARD, report.getBenchmarks().get(0).getExpectation());
+        assertEquals(2.0, report.getBenchmarks().get(0).getMaximumTimeRegressionPercent(), 0.0);
+    }
+
+    @Test
+    public void failsGuardWhenAverageTimeRegressionExceedsMaximum() throws Exception {
+        ComparisonReport report = compare(
+                result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
+                result("candidate.json", "avgt", "us/op", 102.1, 100.1, 104.1, 1000.0),
+                policy("avgt", "us/op", "guard"));
+
+        assertEntryFailure(report, "time regression gate failed");
+    }
+
+    @Test
+    public void passesGuardWhenAverageTimeImproves() throws Exception {
+        ComparisonReport report = compare(
+                result("baseline.json", "avgt", "us/op", 100.0, 98.0, 102.0, 1000.0),
+                result("candidate.json", "avgt", "us/op", 97.0, 95.0, 99.0, 1000.0),
+                policy("avgt", "us/op", "guard"));
+
+        assertTrue(report.isPassed());
+    }
+
+    private Path policy(String mode, String unit, String expectation) throws Exception {
         String json = "{"
                 + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumTimeRegressionPercent\":2.0,"
                 + "\"maximumAllocationRegressionPercent\":2.0,"
                 + "\"allocationMetric\":\"gc.alloc.rate.norm\","
                 + CLAIM_CONFIGURATION
                 + "\"rules\":[{\"benchmark\":\"" + BENCHMARK + "\","
-                + "\"mode\":\"" + mode + "\",\"scoreUnit\":\"" + unit + "\",\"params\":{}}]}";
+                + "\"mode\":\"" + mode + "\",\"scoreUnit\":\"" + unit + "\",\"params\":{},"
+                + "\"expectation\":\"" + expectation + "\"}]}";
         Path path = path("policy-" + mode + ".json");
         Files.write(path, json.getBytes(StandardCharsets.UTF_8));
         return path;

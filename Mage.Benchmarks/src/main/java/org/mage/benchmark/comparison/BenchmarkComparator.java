@@ -102,21 +102,13 @@ public final class BenchmarkComparator {
         } else if ("avgt".equals(baseline.getMode())) {
             improvementPercent = ((baselineMetric.getScore() - candidateMetric.getScore())
                     / baselineMetric.getScore()) * 100.0;
-            if (improvementPercent < rule.getMinimumImprovementPercent()) {
-                reasons.add("minimum improvement gate failed");
-            }
-            if (!(candidateMetric.upperConfidence() < baselineMetric.lowerConfidence())) {
-                reasons.add("confidence gate failed: intervals overlap");
-            }
+            applyTimeGates(rule, improvementPercent,
+                    candidateMetric.upperConfidence() < baselineMetric.lowerConfidence(), reasons);
         } else if ("thrpt".equals(baseline.getMode())) {
             improvementPercent = ((candidateMetric.getScore() - baselineMetric.getScore())
                     / baselineMetric.getScore()) * 100.0;
-            if (improvementPercent < rule.getMinimumImprovementPercent()) {
-                reasons.add("minimum improvement gate failed");
-            }
-            if (!(candidateMetric.lowerConfidence() > baselineMetric.upperConfidence())) {
-                reasons.add("confidence gate failed: intervals overlap");
-            }
+            applyTimeGates(rule, improvementPercent,
+                    candidateMetric.lowerConfidence() > baselineMetric.upperConfidence(), reasons);
         } else {
             reasons.add("unsupported benchmark mode: " + baseline.getMode());
         }
@@ -154,6 +146,23 @@ public final class BenchmarkComparator {
                 allocationRegressionPercent,
                 rule,
                 reasons);
+    }
+
+    private static void applyTimeGates(
+            BenchmarkPolicy.Rule rule,
+            double improvementPercent,
+            boolean confidenceGatePassed,
+            List<String> reasons) {
+        if (rule.getExpectation() == BenchmarkPolicy.Expectation.IMPROVEMENT) {
+            if (improvementPercent < rule.getMinimumImprovementPercent()) {
+                reasons.add("minimum improvement gate failed");
+            }
+            if (!confidenceGatePassed) {
+                reasons.add("confidence gate failed: intervals overlap");
+            }
+        } else if (improvementPercent < -rule.getMaximumTimeRegressionPercent()) {
+            reasons.add("time regression gate failed");
+        }
     }
 
     private static Set<String> difference(Set<String> left, Set<String> right) {

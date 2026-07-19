@@ -45,13 +45,58 @@ public class BenchmarkPolicyTest {
         JmhResultFile results = JmhResultFile.read(writeResults(BENCHMARKS));
 
         assertEquals(11, policy.getRules().size());
+        int guardRules = 0;
         for (JmhResultFile.Result result : results.getResults()) {
             BenchmarkPolicy.Rule rule = policy.ruleFor(result);
             assertEquals(5.0, rule.getMinimumImprovementPercent(), 0.0);
+            assertEquals(BenchmarkPolicy.Expectation.GUARD, rule.getExpectation());
+            assertEquals(2.0, rule.getMaximumTimeRegressionPercent(), 0.0);
             assertEquals(2.0, rule.getMaximumAllocationRegressionPercent(), 0.0);
             assertEquals("gc.alloc.rate.norm", rule.getAllocationMetric());
+            if (rule.getExpectation() == BenchmarkPolicy.Expectation.GUARD) {
+                guardRules++;
+            }
         }
+        assertEquals(11, guardRules);
         assertEquals(0, policy.claimConfigurationProblems(results.getRunConfiguration()).size());
+    }
+
+    @Test
+    public void rejectsUnsupportedExpectation() throws Exception {
+        Path policyPath = write("invalid-expectation-policy.json", "{"
+                + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumTimeRegressionPercent\":2.0,"
+                + "\"maximumAllocationRegressionPercent\":2.0,"
+                + "\"allocationMetric\":\"gc.alloc.rate.norm\","
+                + CLAIM_CONFIGURATION
+                + "\"rules\":[{\"benchmark\":\"example.Benchmark.operation\","
+                + "\"mode\":\"avgt\",\"scoreUnit\":\"us/op\",\"params\":{},"
+                + "\"expectation\":\"unknown\"}]}");
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> BenchmarkPolicy.load(policyPath));
+
+        assertEquals(true, error.getMessage().contains("expectation"));
+    }
+
+    @Test
+    public void appliesRuleMaximumTimeRegressionOverrideAndLegacyExpectationDefault() throws Exception {
+        Path policyPath = write("time-regression-override-policy.json", "{"
+                + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumTimeRegressionPercent\":2.0,"
+                + "\"maximumAllocationRegressionPercent\":2.0,"
+                + "\"allocationMetric\":\"gc.alloc.rate.norm\","
+                + CLAIM_CONFIGURATION
+                + "\"rules\":[{\"benchmark\":\"example.Benchmark.operation\","
+                + "\"mode\":\"avgt\",\"scoreUnit\":\"us/op\",\"params\":{},"
+                + "\"maximumTimeRegressionPercent\":1.0}]}");
+
+        BenchmarkPolicy policy = BenchmarkPolicy.load(policyPath);
+        BenchmarkPolicy.Rule rule = policy.getRules().get(0);
+
+        assertEquals(BenchmarkPolicy.Expectation.IMPROVEMENT, rule.getExpectation());
+        assertEquals(1.0, rule.getMaximumTimeRegressionPercent(), 0.0);
     }
 
     @Test
@@ -75,6 +120,7 @@ public class BenchmarkPolicyTest {
                 + "\"scoreUnit\":\"us/op\",\"params\":{}}";
         Path policyPath = write("duplicate-policy.json", "{"
                 + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumTimeRegressionPercent\":2.0,"
                 + "\"maximumAllocationRegressionPercent\":2.0,"
                 + "\"allocationMetric\":\"gc.alloc.rate.norm\","
                 + CLAIM_CONFIGURATION
@@ -91,6 +137,7 @@ public class BenchmarkPolicyTest {
     public void rejectsNonPositiveDefaultThreshold() throws Exception {
         Path policyPath = write("invalid-policy.json", "{"
                 + "\"minimumImprovementPercent\":0.0,"
+                + "\"maximumTimeRegressionPercent\":2.0,"
                 + "\"maximumAllocationRegressionPercent\":2.0,"
                 + "\"allocationMetric\":\"gc.alloc.rate.norm\","
                 + "\"rules\":[]}");
@@ -103,9 +150,27 @@ public class BenchmarkPolicyTest {
     }
 
     @Test
+    public void rejectsNonPositiveMaximumTimeRegressionThreshold() throws Exception {
+        Path policyPath = write("invalid-time-regression-policy.json", "{"
+                + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumTimeRegressionPercent\":0.0,"
+                + "\"maximumAllocationRegressionPercent\":2.0,"
+                + "\"allocationMetric\":\"gc.alloc.rate.norm\","
+                + CLAIM_CONFIGURATION
+                + "\"rules\":[]}");
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> BenchmarkPolicy.load(policyPath));
+
+        assertEquals(true, error.getMessage().contains("maximumTimeRegressionPercent"));
+    }
+
+    @Test
     public void rejectsMissingClaimConfiguration() throws Exception {
         Path policyPath = write("missing-claim-policy.json", "{"
                 + "\"minimumImprovementPercent\":5.0,"
+                + "\"maximumTimeRegressionPercent\":2.0,"
                 + "\"maximumAllocationRegressionPercent\":2.0,"
                 + "\"allocationMetric\":\"gc.alloc.rate.norm\","
                 + "\"rules\":[]}");
