@@ -3,6 +3,7 @@ package org.mage.benchmark.fixture;
 import mage.constants.PhaseStep;
 import mage.constants.Zone;
 import mage.game.Game;
+import mage.util.ThreadUtils;
 import mage.view.GameView;
 import org.mage.test.serverside.base.CardTestPlayerBase;
 
@@ -12,6 +13,22 @@ public final class DeterministicGameFixture extends CardTestPlayerBase {
     }
 
     public static Snapshot create() throws Exception {
+        Thread thread = Thread.currentThread();
+        String originalThreadName = thread.getName();
+        boolean renameThread = !ThreadUtils.isRunGameThread();
+        if (renameThread) {
+            thread.setName(ThreadUtils.THREAD_PREFIX_GAME + " benchmark fixture");
+        }
+        try {
+            return createInGameThread();
+        } finally {
+            if (renameThread) {
+                thread.setName(originalThreadName);
+            }
+        }
+    }
+
+    private static Snapshot createInGameThread() throws Exception {
         init();
         DeterministicGameFixture fixture = new DeterministicGameFixture();
         fixture.reset();
