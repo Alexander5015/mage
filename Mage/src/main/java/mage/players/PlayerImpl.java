@@ -4532,6 +4532,20 @@ public abstract class PlayerImpl implements Player, Serializable {
         return new PlayableObjectsList(playableObjects);
     }
 
+    @Override
+    public PlayableObjectsList getPlayableObjectsReadOnly(Game game, Zone zone) {
+        Map<UUID, Map<MageIdentifier, Costs<Cost>>> savedCosts = castSourceIdCosts;
+        Map<UUID, Map<MageIdentifier, ManaCosts<ManaCost>>> savedManaCosts = castSourceIdManaCosts;
+        Map<UUID, Set<MageIdentifier>> savedAlternateMana = castSourceIdWithAlternateMana;
+        try {
+            return getPlayableObjects(game, zone);
+        } finally {
+            castSourceIdCosts = savedCosts;
+            castSourceIdManaCosts = savedManaCosts;
+            castSourceIdWithAlternateMana = savedAlternateMana;
+        }
+    }
+
     private void putToPlayableObjects(Map<UUID, List<ActivatedAbility>> playableObjects, UUID objectId, ActivatedAbility ability) {
         if (!playableObjects.containsKey(objectId)) {
             playableObjects.put(objectId, new ArrayList<>());

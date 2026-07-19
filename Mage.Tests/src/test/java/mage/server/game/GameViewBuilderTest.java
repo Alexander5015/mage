@@ -6,6 +6,7 @@ import mage.constants.PhaseStep;
 import mage.constants.Zone;
 import mage.game.command.Emblem;
 import mage.game.command.emblems.MomirEmblem;
+import mage.game.permanent.Permanent;
 import mage.game.stack.StackAbility;
 import mage.view.GameView;
 import org.junit.Test;
@@ -21,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class GameViewBuilderTest extends CardTestPlayerBase {
@@ -85,6 +87,72 @@ public class GameViewBuilderTest extends CardTestPlayerBase {
                 normalizeVolatilePriorityTimeSavedTimeMs(defensive),
                 normalizeVolatilePriorityTimeSavedTimeMs(direct)
         );
+    }
+
+    @Test
+    public void directPriorityPlayerRenderingDoesNotReplaceCastSourceState() throws IOException {
+        addCard(Zone.BATTLEFIELD, playerA, "Island", 3);
+        addCard(Zone.GRAVEYARD, playerA, "Think Twice", 1);
+
+        setStrictChooseMode(true);
+        setStopAt(1, PhaseStep.END_TURN);
+        execute();
+
+        currentGame.getState().setPriorityPlayerId(playerA.getId());
+        Object costs = playerA.getCastSourceIdCosts();
+        Object manaCosts = playerA.getCastSourceIdManaCosts();
+        Object alternateMana = playerA.getCastSourceIdWithAlternateMana();
+        byte[] before = serialize(currentGame);
+
+        GameViewBuilder.renderPlayerView(currentGame, playerA.getId(), UUID.randomUUID());
+
+        assertSame(costs, playerA.getCastSourceIdCosts());
+        assertSame(manaCosts, playerA.getCastSourceIdManaCosts());
+        assertSame(alternateMana, playerA.getCastSourceIdWithAlternateMana());
+        assertArrayEquals(before, serialize(currentGame));
+    }
+
+    @Test
+    public void directRenderingDoesNotInitializeVolosJournalHintState() throws IOException {
+        addCard(Zone.BATTLEFIELD, playerA, "Island", 3);
+        addCard(Zone.HAND, playerA, "Volo, Itinerant Scholar", 1);
+        castSpell(1, PhaseStep.PRECOMBAT_MAIN, playerA, "Volo, Itinerant Scholar");
+
+        setStrictChooseMode(true);
+        setStopAt(1, PhaseStep.POSTCOMBAT_MAIN);
+        execute();
+
+        Permanent journal = getPermanent("Volo's Journal", playerA.getId());
+        String notedTypesKey = "notedTypes_" + journal.getId() + '_' + journal.getZoneChangeCounter(currentGame);
+        assertNull(currentGame.getState().getValue(notedTypesKey));
+
+        byte[] beforePlayer = serialize(currentGame);
+        GameViewBuilder.renderPlayerView(currentGame, playerA.getId(), UUID.randomUUID());
+        assertNull(currentGame.getState().getValue(notedTypesKey));
+        assertArrayEquals(beforePlayer, serialize(currentGame));
+
+        byte[] beforeWatcher = serialize(currentGame);
+        GameViewBuilder.renderWatcherView(currentGame, UUID.randomUUID());
+        assertNull(currentGame.getState().getValue(notedTypesKey));
+        assertArrayEquals(beforeWatcher, serialize(currentGame));
+    }
+
+    @Test
+    public void directRenderingDoesNotInitializeDynamicHintWatcherState() throws IOException {
+        addCard(Zone.BATTLEFIELD, playerA, "Belbe, Corrupted Observer", 1);
+        addCard(Zone.BATTLEFIELD, playerA, "Korvold, Gleeful Glutton", 1);
+
+        setStrictChooseMode(true);
+        setStopAt(1, PhaseStep.END_TURN);
+        execute();
+
+        byte[] beforePlayer = serialize(currentGame);
+        GameViewBuilder.renderPlayerView(currentGame, playerA.getId(), UUID.randomUUID());
+        assertArrayEquals(beforePlayer, serialize(currentGame));
+
+        byte[] beforeWatcher = serialize(currentGame);
+        GameViewBuilder.renderWatcherView(currentGame, UUID.randomUUID());
+        assertArrayEquals(beforeWatcher, serialize(currentGame));
     }
 
     @Test

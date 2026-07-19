@@ -13,6 +13,7 @@ import mage.game.permanent.Permanent;
 import mage.game.stack.Spell;
 import mage.players.Player;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -54,6 +55,16 @@ public final class VolosJournalToken extends TokenImpl {
         }
         return (Set<String>) value;
     }
+
+    public static Set<String> getNotedTypesIfExists(Game game, Permanent permanent) {
+        if (permanent == null) {
+            return Collections.emptySet();
+        }
+
+        String key = "notedTypes_" + permanent.getId() + '_' + permanent.getZoneChangeCounter(game);
+        Object value = game.getState().getValue(key);
+        return value == null ? Collections.emptySet() : (Set<String>) value;
+    }
 }
 
 enum VolosJournalTokenHint implements Hint {
@@ -62,7 +73,7 @@ enum VolosJournalTokenHint implements Hint {
     @Override
     public String getText(Game game, Ability ability) {
         Permanent permanent = game.getPermanent(ability.getSourceId());
-        Set<String> types = VolosJournalToken.getNotedTypes(game, permanent);
+        Set<String> types = VolosJournalToken.getNotedTypesIfExists(game, permanent);
         int size = types.size();
         if (size > 0) {
             return "Creature types noted: " + size + " (" + String.join(", ", types) + ')';

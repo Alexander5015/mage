@@ -861,6 +861,12 @@ public interface Player extends MageItem, Copyable<Player> {
 
     PlayableObjectsList getPlayableObjects(Game game, Zone zone);
 
+    /**
+     * Calculates the objects shown as playable without retaining any
+     * calculation state on this player.
+     */
+    PlayableObjectsList getPlayableObjectsReadOnly(Game game, Zone zone);
+
     Map<UUID, ActivatedAbility> getPlayableActivatedAbilities(MageObject object, Zone zone, Game originalGame);
 
     /**

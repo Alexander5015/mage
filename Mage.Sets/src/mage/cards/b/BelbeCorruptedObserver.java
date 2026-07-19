@@ -111,7 +111,7 @@ class BelbeCorruptedObserverWatcher extends Watcher {
     }
 
     int getOpponentCount(UUID controllerId) {
-        return opponentsWhoLostLife.computeIfAbsent(controllerId, x -> new HashSet<>()).size();
+        return opponentsWhoLostLife.getOrDefault(controllerId, Collections.emptySet()).size();
     }
 }
 

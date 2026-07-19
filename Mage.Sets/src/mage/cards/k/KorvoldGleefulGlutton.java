@@ -1,5 +1,6 @@
 package mage.cards.k;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -112,7 +113,7 @@ class KorvoldGleefulGluttonWatcher extends Watcher {
     }
 
     public int getNumberOfTypes(UUID playerId) {
-        return map.computeIfAbsent(playerId, k -> new HashSet<>()).size();
+        return map.getOrDefault(playerId, Collections.emptySet()).size();
     }
 }
 

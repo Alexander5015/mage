@@ -3712,6 +3712,11 @@ public class TestPlayer implements Player {
     }
 
     @Override
+    public PlayableObjectsList getPlayableObjectsReadOnly(Game game, Zone zone) {
+        return computerPlayer.getPlayableObjectsReadOnly(game, zone);
+    }
+
+    @Override
     public List<Ability> getPlayableOptions(Ability ability, Game game) {
         return computerPlayer.getPlayableOptions(ability, game);
     }

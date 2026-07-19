@@ -40,7 +40,7 @@ final class GameViewBuilder {
         Player priorityPlayer = game.getPlayer(game.getPriorityPlayerId());
         Player controllingPlayer = priorityPlayer == null ? null : game.getPlayer(priorityPlayer.getTurnControlledBy());
         if (controllingPlayer != null && player == controllingPlayer) {
-            gameView.setCanPlayObjects(priorityPlayer.getPlayableObjects(game, Zone.ALL));
+            gameView.setCanPlayObjects(priorityPlayer.getPlayableObjectsReadOnly(game, Zone.ALL));
         }
 
         processControlledPlayers(game, player, gameView);
