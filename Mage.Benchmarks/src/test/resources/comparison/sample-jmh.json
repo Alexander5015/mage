@@ -1,0 +1,39 @@
+[
+  {
+    "jmhVersion": "1.37",
+    "benchmark": "org.mage.benchmark.GameCopyBenchmark.copyGame",
+    "mode": "avgt",
+    "threads": 1,
+    "forks": 3,
+    "jvm": "/usr/bin/java",
+    "jvmArgs": [],
+    "jdkVersion": "1.8.0",
+    "vmName": "OpenJDK 64-Bit Server VM",
+    "vmVersion": "25.0",
+    "warmupIterations": 5,
+    "warmupTime": "1 s",
+    "warmupBatchSize": 1,
+    "measurementIterations": 10,
+    "measurementTime": "1 s",
+    "measurementBatchSize": 1,
+    "params": {},
+    "primaryMetric": {
+      "score": 100.0,
+      "scoreError": 2.0,
+      "scoreConfidence": [98.0, 102.0],
+      "scorePercentiles": {},
+      "scoreUnit": "us/op",
+      "rawData": [[100.0]]
+    },
+    "secondaryMetrics": {
+      "gc.alloc.rate.norm": {
+        "score": 1000.0,
+        "scoreError": 0.0,
+        "scoreConfidence": [1000.0, 1000.0],
+        "scorePercentiles": {},
+        "scoreUnit": "B/op",
+        "rawData": [[1000.0]]
+      }
+    }
+  }
+]

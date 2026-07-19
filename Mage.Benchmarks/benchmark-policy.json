@@ -1,0 +1,73 @@
+{
+  "minimumImprovementPercent": 5.0,
+  "maximumAllocationRegressionPercent": 2.0,
+  "allocationMetric": "gc.alloc.rate.norm",
+  "rules": [
+    {
+      "benchmark": "org.mage.benchmark.GameCopyBenchmark.copyGame",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.GameCopyBenchmark.copyGameState",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.GameCopyBenchmark.copyBattlefield",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadCompressionBenchmark.compressGameView",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadCompressionBenchmark.decompressGameView",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadCompressionBenchmark.compressControlPayload",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadCompressionBenchmark.decompressControlPayload",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadSerializationBenchmark.serializeGameView",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadSerializationBenchmark.deserializeGameView",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadSerializationBenchmark.serializeControlPayload",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    },
+    {
+      "benchmark": "org.mage.benchmark.PayloadSerializationBenchmark.deserializeControlPayload",
+      "mode": "avgt",
+      "scoreUnit": "us/op",
+      "params": {}
+    }
+  ]
+}
