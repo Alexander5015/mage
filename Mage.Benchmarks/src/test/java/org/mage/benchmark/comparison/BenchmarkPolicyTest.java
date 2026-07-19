@@ -19,6 +19,7 @@ public class BenchmarkPolicyTest {
             + "\"minimumWarmupIterations\":5,\"minimumWarmupTime\":\"1 s\","
             + "\"warmupBatchSize\":1,\"minimumMeasurementIterations\":10,"
             + "\"minimumMeasurementTime\":\"1 s\",\"measurementBatchSize\":1,"
+            + "\"requiredJvmArguments\":[\"-Xbatch\"],"
             + "\"requiredJvmArgumentPrefixes\":[\"-Dxmage.benchmark.fixture=\"]},";
 
     private static final String[] BENCHMARKS = {
@@ -65,7 +66,24 @@ public class BenchmarkPolicyTest {
         }
         assertEquals(2, improvementRules);
         assertEquals(11, guardRules);
-        assertEquals(0, policy.claimConfigurationProblems(results.getRunConfiguration()).size());
+        java.util.List<String> configurationProblems =
+                policy.claimConfigurationProblems(results.getRunConfiguration());
+        assertEquals(configurationProblems.toString(), 0, configurationProblems.size());
+    }
+
+    @Test
+    public void rejectsMissingRequiredExactJvmArgument() throws Exception {
+        BenchmarkPolicy policy = BenchmarkPolicy.load(
+                Paths.get(System.getProperty("basedir"), "benchmark-policy.json"));
+        Path resultsPath = writeResults(BENCHMARKS);
+        String json = new String(Files.readAllBytes(resultsPath), StandardCharsets.UTF_8)
+                .replace("\"-Xbatch\",", "");
+        Files.write(resultsPath, json.getBytes(StandardCharsets.UTF_8));
+
+        java.util.List<String> configurationProblems = policy.claimConfigurationProblems(
+                JmhResultFile.read(resultsPath).getRunConfiguration());
+
+        assertEquals(true, configurationProblems.contains("missing required JVM argument: -Xbatch"));
     }
 
     @Test
@@ -198,7 +216,8 @@ public class BenchmarkPolicyTest {
             json.append("{\"benchmark\":\"").append(benchmarks[i]).append("\","
                     + "\"jmhVersion\":\"1.37\",\"mode\":\"avgt\","
                     + "\"threads\":1,\"forks\":3,\"jvm\":\"/usr/bin/java\","
-                    + "\"jvmArgs\":[\"-Dxmage.benchmark.fixture=/tmp/fixture.bin\"],"
+                    + "\"jvmArgs\":[\"-Xbatch\","
+                    + "\"-Dxmage.benchmark.fixture=/tmp/fixture.bin\"],"
                     + "\"jdkVersion\":\"1.8.0\",\"vmName\":\"OpenJDK 64-Bit Server VM\","
                     + "\"vmVersion\":\"25.0\",\"warmupIterations\":5,\"warmupTime\":\"1 s\","
                     + "\"warmupBatchSize\":1,\"measurementIterations\":10,"

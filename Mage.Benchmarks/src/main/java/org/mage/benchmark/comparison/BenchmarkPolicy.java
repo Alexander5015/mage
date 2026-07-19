@@ -174,6 +174,7 @@ public final class BenchmarkPolicy {
         private final int minimumMeasurementIterations;
         private final BigDecimal minimumMeasurementTimeNanos;
         private final int measurementBatchSize;
+        private final List<String> requiredJvmArguments;
         private final List<String> requiredJvmArgumentPrefixes;
 
         private ClaimConfiguration(RawClaimConfiguration raw) {
@@ -194,6 +195,15 @@ public final class BenchmarkPolicy {
                     raw.minimumMeasurementTime, "claimConfiguration minimumMeasurementTime");
             measurementBatchSize = requirePositive(
                     raw.measurementBatchSize, "claimConfiguration measurementBatchSize");
+            List<String> arguments = new ArrayList<>();
+            if (raw.requiredJvmArguments != null) {
+                for (int i = 0; i < raw.requiredJvmArguments.size(); i++) {
+                    arguments.add(requireText(
+                            raw.requiredJvmArguments.get(i),
+                            "claimConfiguration requiredJvmArguments[" + i + "]"));
+                }
+            }
+            requiredJvmArguments = Collections.unmodifiableList(arguments);
             if (raw.requiredJvmArgumentPrefixes == null || raw.requiredJvmArgumentPrefixes.isEmpty()) {
                 throw new IllegalArgumentException(
                         "claimConfiguration requiredJvmArgumentPrefixes are missing");
@@ -252,6 +262,11 @@ public final class BenchmarkPolicy {
             if (actual.getMeasurementBatchSize() != measurementBatchSize) {
                 problems.add("measurement batch size must equal " + measurementBatchSize
                         + ": " + actual.getMeasurementBatchSize());
+            }
+            for (String argument : requiredJvmArguments) {
+                if (!actual.getJvmArgs().contains(argument)) {
+                    problems.add("missing required JVM argument: " + argument);
+                }
             }
             for (String prefix : requiredJvmArgumentPrefixes) {
                 boolean found = false;
@@ -380,6 +395,7 @@ public final class BenchmarkPolicy {
         private Integer minimumMeasurementIterations;
         private String minimumMeasurementTime;
         private Integer measurementBatchSize;
+        private List<String> requiredJvmArguments;
         private List<String> requiredJvmArgumentPrefixes;
     }
 

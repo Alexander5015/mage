@@ -139,7 +139,7 @@ else
     echo "Unable to find shasum or sha256sum for fixture verification" >&2
     exit 2
 fi
-RUN_CONFIG="comparison:f3:wi5:i10:w1s:r1s:t1:gc:full:workload-tree=$BASELINE_WORKLOAD_TREE:fixture=$FIXTURE_SHA256"
+RUN_CONFIG="comparison:f3:wi5:i10:w1s:r1s:t1:gc:full:xbatch:workload-tree=$BASELINE_WORKLOAD_TREE:fixture=$FIXTURE_SHA256"
 
 run_jmh() {
     local label="$1" worktree="$2" jar="$3" output="$4"
@@ -149,7 +149,7 @@ run_jmh() {
         cd "$worktree/Mage.Tests"
         "$JAVA_EXECUTABLE" -jar "$jar" "$BENCHMARK_REGEX" \
             -f 3 -wi 5 -i 10 -w 1s -r 1s -t 1 -prof gc \
-            -jvmArgsAppend "-Dxmage.benchmark.fixture=$CLAIM_FIXTURE" \
+            -jvmArgsAppend "-Xbatch -Dxmage.benchmark.fixture=$CLAIM_FIXTURE" \
             -rf json -rff "$output/results.json"
     ) 2>&1 | tee "$output/jmh.log"
     test -s "$output/results.json"

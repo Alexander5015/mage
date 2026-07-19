@@ -12,6 +12,9 @@
     "minimumMeasurementIterations": 10,
     "minimumMeasurementTime": "1 s",
     "measurementBatchSize": 1,
+    "requiredJvmArguments": [
+      "-Xbatch"
+    ],
     "requiredJvmArgumentPrefixes": [
       "-Dxmage.benchmark.fixture="
     ]
