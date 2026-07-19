@@ -4,17 +4,13 @@ import mage.game.Game;
 import mage.game.Table;
 import mage.interfaces.callback.ClientCallback;
 import mage.interfaces.callback.ClientCallbackMethod;
-import mage.players.Player;
 import mage.server.User;
 import mage.server.managers.UserManager;
 import mage.view.GameClientMessage;
 import mage.view.GameEndView;
 import mage.view.GameView;
-import mage.view.SimpleCardsView;
 import org.apache.log4j.Logger;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,21 +49,21 @@ public class GameSessionWatcher {
 
     public void update() {
         if (!killed) {
-            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_UPDATE, game.getId(), getGameView())));
+            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_UPDATE, game.getId(), getGameViewFromStableGame())));
         }
 
     }
 
     public void inform(final String message) {
         if (!killed) {
-            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_UPDATE_AND_INFORM, game.getId(), new GameClientMessage(getGameView(), null, message))));
+            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_UPDATE_AND_INFORM, game.getId(), new GameClientMessage(getGameViewFromStableGame(), null, message))));
         }
 
     }
 
     public void informPersonal(final String message) {
         if (!killed) {
-            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_INFORM_PERSONAL, game.getId(), new GameClientMessage(getGameView(), null, message))));
+            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_INFORM_PERSONAL, game.getId(), new GameClientMessage(getGameViewFromStableGame(), null, message))));
         }
 
     }
@@ -76,7 +72,7 @@ public class GameSessionWatcher {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user -> {
                 user.removeGameWatchInfo(game.getId());
-                user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_OVER, game.getId(), new GameClientMessage(getGameView(), null, message)));
+                user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_OVER, game.getId(), new GameClientMessage(getGameViewFromStableGame(), null, message)));
             });
         }
     }
@@ -100,22 +96,11 @@ public class GameSessionWatcher {
     }
 
     public GameView getGameView() {
-        // game view calculation can take some time and can be called from non-game thread,
-        // so use copy for thread save (protection from ConcurrentModificationException)
-        Game sourceGame = game.copy();
-
-        GameView gameView = new GameView(sourceGame.getState(), sourceGame, null, userId);
-        processWatchedHands(sourceGame, userId, gameView);
-        return gameView;
+        return GameViewBuilder.fromDefensiveCopyForWatcher(game, userId);
     }
 
-    protected static void processWatchedHands(Game game, UUID userId, GameView gameView) {
-        gameView.getWatchedHands().clear();
-        for (Player player : game.getPlayers().values()) {
-            if (player.hasUserPermissionToSeeHand(userId)) {
-                gameView.getWatchedHands().put(player.getName(), new SimpleCardsView(player.getHand().getCards(game), true));
-            }
-        }
+    GameView getGameViewFromStableGame() {
+        return GameViewBuilder.fromStableGameForWatcher(game, userId);
     }
 
     public GameEndView getGameEndView(UUID playerId, Table table) {

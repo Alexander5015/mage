@@ -4,7 +4,6 @@ import mage.cards.Cards;
 import mage.choices.Choice;
 import mage.constants.ManaType;
 import mage.constants.PlayerAction;
-import mage.constants.Zone;
 import mage.game.Game;
 import mage.game.Table;
 import mage.interfaces.callback.ClientCallback;
@@ -48,7 +47,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
 
     public void ask(final String question, final Map<String, Serializable> options) {
         if (!killed) {
-            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_ASK, game.getId(), new GameClientMessage(getGameView(), options, question)))
+            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_ASK, game.getId(), new GameClientMessage(getGameViewFromStableGame(), options, question)))
             );
         }
     }
@@ -56,7 +55,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
     public void target(final String question, final CardsView cardView, final Set<UUID> targets, final boolean required, final Map<String, Serializable> options) {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user -> {
-                user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_TARGET, game.getId(), new GameClientMessage(getGameView(), options, question, cardView, targets, required)));
+                user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_TARGET, game.getId(), new GameClientMessage(getGameViewFromStableGame(), options, question, cardView, targets, required)));
             });
 
         }
@@ -64,7 +63,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
 
     public void select(final String message, final Map<String, Serializable> options) {
         if (!killed) {
-            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_SELECT, game.getId(), new GameClientMessage(getGameView(), options, message))));
+            userManager.getUser(userId).ifPresent(user -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_SELECT, game.getId(), new GameClientMessage(getGameViewFromStableGame(), options, message))));
         }
     }
 
@@ -79,7 +78,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
     public void choosePile(final String message, final CardsView pile1, final CardsView pile2) {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user
-                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_CHOOSE_PILE, game.getId(), new GameClientMessage(getGameView(), null, message, pile1, pile2))));
+                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_CHOOSE_PILE, game.getId(), new GameClientMessage(getGameViewFromStableGame(), null, message, pile1, pile2))));
         }
 
     }
@@ -87,7 +86,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
     public void chooseChoice(final Choice choice) {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user
-                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_CHOOSE_CHOICE, game.getId(), new GameClientMessage(getGameView(), null, choice))));
+                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_CHOOSE_CHOICE, game.getId(), new GameClientMessage(getGameViewFromStableGame(), null, choice))));
         }
 
     }
@@ -95,14 +94,14 @@ public class GameSessionPlayer extends GameSessionWatcher {
     public void playMana(final String message, final Map<String, Serializable> options) {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user
-                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_PLAY_MANA, game.getId(), new GameClientMessage(getGameView(), options, message))));
+                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_PLAY_MANA, game.getId(), new GameClientMessage(getGameViewFromStableGame(), options, message))));
         }
     }
 
     public void playXMana(final String message) {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user
-                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_PLAY_XMANA, game.getId(), new GameClientMessage(getGameView(), null, message))));
+                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_PLAY_XMANA, game.getId(), new GameClientMessage(getGameViewFromStableGame(), null, message))));
 
         }
     }
@@ -110,7 +109,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
     public void getAmount(final String message, final int min, final int max) {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user -> {
-                user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_GET_AMOUNT, game.getId(), new GameClientMessage(getGameView(), null, message, min, max)));
+                user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_GET_AMOUNT, game.getId(), new GameClientMessage(getGameViewFromStableGame(), null, message, min, max)));
             });
         }
     }
@@ -119,7 +118,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
             final Map<String, Serializable> options) {
         if (!killed) {
             userManager.getUser(userId).ifPresent(user
-                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_GET_MULTI_AMOUNT, game.getId(), new GameClientMessage(getGameView(), options, messages, min, max))));
+                    -> user.fireCallback(new ClientCallback(ClientCallbackMethod.GAME_GET_MULTI_AMOUNT, game.getId(), new GameClientMessage(getGameViewFromStableGame(), options, messages, min, max))));
         }
     }
 
@@ -200,6 +199,11 @@ public class GameSessionPlayer extends GameSessionWatcher {
         return prepareGameView(game, playerId, userId);
     }
 
+    @Override
+    GameView getGameViewFromStableGame() {
+        return GameViewBuilder.fromStableGameForPlayer(game, playerId, userId);
+    }
+
     /**
      * Prepare client-server data. Can be used in real games or in unit tests
      *
@@ -209,38 +213,7 @@ public class GameSessionPlayer extends GameSessionWatcher {
      * @return
      */
     public static GameView prepareGameView(Game game, UUID playerId, UUID userId) {
-        // game view calculation can take some time and can be called from non-game thread,
-        // so use copy for thread save (protection from ConcurrentModificationException)
-        Game sourceGame = game.copy();
-        GameView gameView = new GameView(sourceGame.getState(), sourceGame, playerId, null);
-
-        // playable info (if opponent under control then show opponent's playable)
-        Player player = sourceGame.getPlayer(playerId); // null for watcher
-        Player priorityPlayer = sourceGame.getPlayer(sourceGame.getPriorityPlayerId());
-        Player controllingPlayer = priorityPlayer == null ? null : sourceGame.getPlayer(priorityPlayer.getTurnControlledBy());
-        if (controllingPlayer != null && player == controllingPlayer) {
-            gameView.setCanPlayObjects(priorityPlayer.getPlayableObjects(sourceGame, Zone.ALL));
-        }
-
-        processControlledPlayers(sourceGame, player, gameView);
-        processWatchedHands(sourceGame, userId, gameView);
-        //TODO: should player who controls another player's turn be able to look at all these cards?
-
-        return gameView;
-    }
-
-    private static void processControlledPlayers(Game game, Player player, GameView gameView) {
-        if (player == null) {
-            // ignore watcher
-            return;
-        }
-        gameView.getOpponentHands().clear();
-        if (!player.getPlayersUnderYourControl().isEmpty()) {
-            for (UUID controlledPlayerId : player.getPlayersUnderYourControl()) {
-                Player opponent = game.getPlayer(controlledPlayerId);
-                gameView.getOpponentHands().put(opponent.getName(), new SimpleCardsView(opponent.getHand().getCards(game), true));
-            }
-        }
+        return GameViewBuilder.fromDefensiveCopyForPlayer(game, playerId, userId);
     }
 
     public void removeGame() {
