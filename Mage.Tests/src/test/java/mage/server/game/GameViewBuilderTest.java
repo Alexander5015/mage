@@ -1,14 +1,22 @@
 package mage.server.game;
 
+import mage.abilities.Ability;
 import mage.constants.PhaseStep;
 import mage.constants.Zone;
+import mage.game.command.Emblem;
+import mage.game.command.emblems.MomirEmblem;
+import mage.game.stack.StackAbility;
 import mage.view.GameView;
 import org.junit.Test;
 import org.mage.test.serverside.base.CardTestPlayerBase;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -45,6 +53,43 @@ public class GameViewBuilderTest extends CardTestPlayerBase {
                 normalizeVolatilePriorityTimeSavedTimeMs(watcher)
         );
         assertEquals(1, watcher.getWatchedHands().size());
+    }
+
+    @Test
+    public void directRenderingDoesNotMutateSourceGame() throws IOException {
+        setStrictChooseMode(true);
+        setStopAt(1, PhaseStep.END_TURN);
+        execute();
+
+        addEmblem(playerA, new MomirEmblem());
+        Emblem emblem = currentGame.getState().getCommand().stream()
+                .filter(Emblem.class::isInstance)
+                .map(Emblem.class::cast)
+                .filter(commandObject -> commandObject.getName().equals("Emblem Momir"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Momir emblem was not added to the game"));
+        Ability ability = emblem.getAbilities().get(0);
+        currentGame.getStack().push(currentGame, new StackAbility(ability, playerA.getId()));
+
+        UUID userA = UUID.randomUUID();
+        GameView defensive = GameViewBuilder.fromDefensiveCopyForPlayer(currentGame, playerA.getId(), userA);
+        byte[] before = serialize(currentGame);
+
+        GameView direct = GameViewBuilder.renderPlayerView(currentGame, playerA.getId(), userA);
+
+        assertArrayEquals(before, serialize(currentGame));
+        assertEquals(
+                normalizeVolatilePriorityTimeSavedTimeMs(defensive),
+                normalizeVolatilePriorityTimeSavedTimeMs(direct)
+        );
+    }
+
+    private static byte[] serialize(Object object) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
+            output.writeObject(object);
+        }
+        return bytes.toByteArray();
     }
 
     private static String normalizeVolatilePriorityTimeSavedTimeMs(GameView gameView) {

@@ -12,6 +12,7 @@ import mage.designations.Designation;
 import mage.game.ExileZone;
 import mage.game.Game;
 import mage.game.GameState;
+import mage.game.LookedAt;
 import mage.game.combat.CombatGroup;
 import mage.game.command.Dungeon;
 import mage.game.command.Emblem;
@@ -125,20 +126,17 @@ public class GameView implements Serializable {
                     } else if (object instanceof Emblem) {
                         CardView cardView = new CardView(new EmblemView((Emblem) object, game));
                         // Card sourceCard = (Card) ((Emblem) object).getSourceObject();
-                        stackObject.setName(object.getName());
                         // ((StackAbility) stackObject).setExpansionSetCode(sourceCard.getExpansionSetCode());
                         stack.put(stackObject.getId(),
                                 new StackAbilityView(game, (StackAbility) stackObject, object.getName(), object, cardView));
                         checkPaid(stackObject.getId(), ((StackAbility) stackObject));
                     } else if (object instanceof Dungeon) {
                         CardView cardView = new CardView(new DungeonView((Dungeon) object));
-                        stackObject.setName(object.getName());
                         stack.put(stackObject.getId(),
                                 new StackAbilityView(game, (StackAbility) stackObject, object.getName(), object, cardView));
                         checkPaid(stackObject.getId(), ((StackAbility) stackObject));
                     } else if (object instanceof Plane) {
                         CardView cardView = new CardView(new PlaneView((Plane) object, game));
-                        stackObject.setName(object.getName());
                         stack.put(stackObject.getId(),
                                 new StackAbilityView(game, (StackAbility) stackObject, object.getName(), object, cardView));
                         checkPaid(stackObject.getId(), ((StackAbility) stackObject));
@@ -150,8 +148,6 @@ public class GameView implements Serializable {
                             throw new IllegalArgumentException("Designation object not found: " + object + " - " + object.getClass().toString());
                         }
                     } else if (object instanceof StackAbility) {
-                        StackAbility stackAbility = ((StackAbility) object);
-                        stackAbility.newId();
                         stack.put(stackObject.getId(), new CardView(stackObject, game));
                         checkPaid(stackObject.getId(), ((StackAbility) stackObject));
                     } else {
@@ -173,8 +169,11 @@ public class GameView implements Serializable {
             revealed.add(new RevealedView(name, state.getRevealed().get(name), game));
         }
         if (this.myPlayerId != null) {
-            for (String name : state.getLookedAt(this.myPlayerId).keySet()){
-                lookedAt.add(new LookedAtView(name, state.getLookedAt(this.myPlayerId).get(name), game));
+            LookedAt lookedAtCards = state.getLookedAtIfExists(this.myPlayerId);
+            if (lookedAtCards != null) {
+                for (String name : lookedAtCards.keySet()) {
+                    lookedAt.add(new LookedAtView(name, lookedAtCards.get(name), game));
+                }
             }
         }
         for (String name : state.getCompanion().keySet()) {

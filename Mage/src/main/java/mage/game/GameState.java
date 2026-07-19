@@ -559,6 +559,15 @@ public class GameState implements Serializable, Copyable<GameState> {
         return lookedAt.get(playerId);
     }
 
+    /**
+     * Returns the cards looked at by the player without initializing state.
+     *
+     * @return the existing looked-at cards, or {@code null} if none were recorded
+     */
+    public LookedAt getLookedAtIfExists(UUID playerId) {
+        return lookedAt.get(playerId);
+    }
+
     public Revealed getCompanion() {
         return companion;
     }
@@ -1521,6 +1530,15 @@ public class GameState implements Serializable, Copyable<GameState> {
 
     public CardState getCardState(UUID cardId) {
         cardState.putIfAbsent(cardId, new CardState());
+        return cardState.get(cardId);
+    }
+
+    /**
+     * Returns the card state without initializing state.
+     *
+     * @return the existing card state, or {@code null} if none was recorded
+     */
+    public CardState getCardStateIfExists(UUID cardId) {
         return cardState.get(cardId);
     }
 

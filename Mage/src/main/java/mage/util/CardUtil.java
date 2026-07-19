@@ -1357,7 +1357,7 @@ public final class CardUtil {
             }
 
             // additional effect's info from card.addInfo methods
-            CardState cardState = game.getState().getCardState(object.getId());
+            CardState cardState = game.getState().getCardStateIfExists(object.getId());
             if (cardState != null) {
                 rules.addAll(cardState.getInfo().values());
             }
